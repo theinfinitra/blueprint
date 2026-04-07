@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/src/*.js
+
+# Environment / secrets
+.env
+frontend/.env
+infra/config/stg.env
+infra/config/prd.env
+*.env.local
+*.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# AWS / deployment
+.bedrock_agentcore/
+.bedrock_agentcore.yaml
+
+# Kiro
+.kiro/
+
+# Build artifacts
+dist/
+build/
+*.zip

@@ -1,0 +1,235 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Diagram Agent — Lambda, API Gateway, Cognito client, IAM
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [stg, prd]
+  ImageUri:
+    Type: String
+    Description: ECR image URI for the Lambda function
+  CognitoUserPoolId:
+    Type: String
+  CognitoDomainPrefix:
+    Type: String
+  FrontendUrl:
+    Type: String
+    Default: http://localhost:5174
+
+Resources:
+  # ── IAM ──────────────────────────────────────────────────────────────────
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub diagram-agent-${Environment}-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DiagramAgentAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::infinitra-diagram-agent-${Environment}
+                  - !Sub arn:aws:s3:::infinitra-diagram-agent-${Environment}/*
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:diagram-agent-${Environment}
+
+  # ── Lambda ───────────────────────────────────────────────────────────────
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub diagram-agent-${Environment}
+      PackageType: Image
+      Code:
+        ImageUri: !Ref ImageUri
+      Role: !GetAtt LambdaRole.Arn
+      Timeout: 300
+      MemorySize: 512
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          S3_BUCKET: !Sub infinitra-diagram-agent-${Environment}
+
+  # ── Cognito ──────────────────────────────────────────────────────────────
+  CognitoDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref CognitoUserPoolId
+
+  AppClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: CognitoDomain
+    Properties:
+      ClientName: !Sub diagram-agent-${Environment}
+      UserPoolId: !Ref CognitoUserPoolId
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - !Sub ${FrontendUrl}/callback
+        - http://localhost:5174/callback
+      LogoutURLs:
+        - !Ref FrontendUrl
+        - http://localhost:5174
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+  # ── API Gateway ──────────────────────────────────────────────────────────
+  Api:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub diagram-agent-${Environment}
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendUrl
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        MaxAge: 3600
+
+  Authorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerType: JWT
+      IdentitySource:
+        - $request.header.Authorization
+      Name: CognitoAuth
+      JwtConfiguration:
+        Audience:
+          - !Ref AppClient
+        Issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPoolId}
+
+  Integration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref Api
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt Function.Arn
+      PayloadFormatVersion: '2.0'
+
+  RouteGenerate:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: POST /generate
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteResult:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: GET /result
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteDiagramsGet:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: GET /diagrams
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteDiagramsPut:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: PUT /diagrams
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteDiagramsDelete:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: DELETE /diagrams
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref Api
+      StageName: $default
+      AutoDeploy: true
+
+  InvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Function
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*/*
+
+Outputs:
+  ApiEndpoint:
+    Value: !GetAtt Api.ApiEndpoint
+    Export:
+      Name: !Sub diagram-agent-api-${Environment}
+  ClientId:
+    Value: !Ref AppClient
+  CognitoDomain:
+    Value: !Sub https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com
+  FunctionName:
+    Value: !Ref Function
+  FrontendEnv:
+    Description: Paste into frontend/.env
+    Value: !Sub |
+      VITE_API_ENDPOINT=${Api.ApiEndpoint}
+      VITE_COGNITO_DOMAIN=https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com
+      VITE_CLIENT_ID=${AppClient}
+      VITE_REDIRECT_URI=${FrontendUrl}/callback
+      VITE_COGNITO_POOL_ID=${CognitoUserPoolId}
+      VITE_REGION=${AWS::Region}

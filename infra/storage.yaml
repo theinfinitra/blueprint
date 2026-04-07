@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Diagram Agent — S3 bucket for diagram storage
+
+Parameters:
+  Environment:
+    Type: String
+    Default: stg
+    AllowedValues: [stg, prd]
+
+Resources:
+  DiagramBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub infinitra-diagram-agent-${Environment}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: auto-delete-90d
+            Status: Enabled
+            ExpirationInDays: 90
+            Prefix: diagrams/
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+
+Outputs:
+  BucketName:
+    Value: !Ref DiagramBucket
+    Export:
+      Name: !Sub diagram-agent-bucket-${Environment}
+  BucketArn:
+    Value: !GetAtt DiagramBucket.Arn
+    Export:
+      Name: !Sub diagram-agent-bucket-arn-${Environment}
