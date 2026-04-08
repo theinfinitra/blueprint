@@ -49,7 +49,7 @@ echo "[1/5] Deploying storage stack..."
 aws cloudformation deploy \
   --stack-name "${STACK_PREFIX}-storage" \
   --template-file "${SCRIPT_DIR}/storage.yaml" \
-  --parameter-overrides Environment="${ENV}" \
+  --parameter-overrides Environment="${ENV}" BucketPrefix="${S3_BUCKET%-${ENV}}" \
   --no-fail-on-empty-changeset \
   --profile "${PROFILE}" --region "${REGION}"
 
@@ -87,6 +87,7 @@ aws cloudformation deploy \
     CognitoUserPoolId="${COGNITO_USER_POOL_ID}" \
     CognitoDomainPrefix="${COGNITO_DOMAIN_PREFIX}" \
     FrontendUrl="${FRONTEND_URL}" \
+    S3Bucket="${S3_BUCKET}" \
   --capabilities CAPABILITY_NAMED_IAM \
   --no-fail-on-empty-changeset \
   --profile "${PROFILE}" --region "${REGION}"

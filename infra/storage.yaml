@@ -6,12 +6,15 @@ Parameters:
     Type: String
     Default: stg
     AllowedValues: [stg, prd]
+  BucketPrefix:
+    Type: String
+    Default: blueprint-diagrams
 
 Resources:
   DiagramBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub blueprint-diagrams-${Environment}
+      BucketName: !Sub ${BucketPrefix}-${Environment}
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
