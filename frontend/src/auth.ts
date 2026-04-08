@@ -84,9 +84,11 @@ export async function handleCallback(code: string): Promise<Tokens> {
 
 export function logout() {
   localStorage.removeItem("diagram_tokens");
+  const base = window.location.origin + import.meta.env.BASE_URL;
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    logout_uri: window.location.origin,
+    logout_uri: base,
+    redirect_uri: base,
   });
   window.location.href = `${COGNITO_DOMAIN}/logout?${params}`;
 }

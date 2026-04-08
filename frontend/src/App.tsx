@@ -6,7 +6,7 @@ import { C, FONT, btnPrimary, btnAction, btnActionPrimary, btnIcon, btnQuickActi
 import {
   PanelLeftClose, PanelLeftOpen, Download, Plus, LogOut, Undo2,
   Send, Loader2, Check, FileCode2, Clock, ChevronRight, Trash2, Sparkles, Bot,
-  MessageSquare, MessageSquareOff,
+  MessageSquare,
 } from "lucide-react";
 
 // ── Design tokens imported from styles.ts ────────────────────────────────────
@@ -146,7 +146,7 @@ export default function App() {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: C.bg }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <FileCode2 size={20} color="#fff" />
+            <span style={{ color: "#fff", fontSize: 20, fontWeight: 700, fontFamily: FONT.sans }}>B</span>
           </div>
           <span style={{ fontSize: 26, fontWeight: 700, color: C.text }}>Blueprint</span>
         </div>
@@ -163,25 +163,16 @@ export default function App() {
       {/* Header */}
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 16px", height: 48, borderBottom: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={btnIcon} title="Toggle sidebar">
-            {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
-          </button>
-          {!sidebarOpen && (
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: FONT.sans }}>B</span>
-            </div>
-          )}
-          <div style={{ width: 1, height: 20, background: C.border }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {sidebarOpen && (
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <FileCode2 size={13} color="#fff" />
-              </div>
-            )}
-            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
-              {diagramTitle || "Blueprint"}
-            </span>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, fontFamily: FONT.sans }}>B</span>
           </div>
+          <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Blueprint</span>
+          {diagramTitle && (
+            <>
+              <div style={{ width: 1, height: 18, background: C.border }} />
+              <span style={{ fontSize: 15, color: C.text, fontWeight: 700 }}>{diagramTitle}</span>
+            </>
+          )}
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {saveStatus && (
@@ -199,19 +190,19 @@ export default function App() {
             </a>
           )}
           <div style={{ width: 1, height: 20, background: C.border }} />
-          <button onClick={() => setChatOpen(!chatOpen)} style={btnIcon} title="Toggle chat">
-            {chatOpen ? <MessageSquareOff size={17} /> : <MessageSquare size={17} />}
-          </button>
           <button onClick={logout} style={btnIcon} title="Sign out"><LogOut size={17} /></button>
         </div>
       </header>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* Sidebar */}
-        {sidebarOpen && (
+        {sidebarOpen ? (
           <div style={{ width: 240, minWidth: 200, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", background: C.sidebarBg, flexShrink: 0 }}>
-            <div style={{ padding: "12px 16px", fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${C.borderLight}` }}>
-              Diagrams
+            <div style={{ padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.borderLight}` }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diagrams</span>
+              <button onClick={() => setSidebarOpen(false)} style={{ ...btnIcon, width: 24, height: 24 }} title="Close sidebar">
+                <PanelLeftClose size={14} />
+              </button>
             </div>
             <div style={{ flex: 1, overflow: "auto", padding: "4px 0" }}>
               {Object.entries(groupedDiagrams).map(([group, diagrams]) => (
@@ -275,128 +266,181 @@ export default function App() {
               )}
             </div>
           </div>
+        ) : (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              width: 28, alignSelf: "stretch", border: "none", borderRight: `1px solid ${C.border}`,
+              background: C.sidebarBg, cursor: "pointer", display: "flex", alignItems: "flex-start", justifyContent: "center",
+              paddingTop: 12, transition: "background 0.15s", flexShrink: 0,
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = C.hover}
+            onMouseLeave={(e) => e.currentTarget.style.background = C.sidebarBg}
+            title="Open sidebar"
+          >
+            <PanelLeftOpen size={14} color={C.textMuted} />
+          </button>
         )}
 
-        {/* Chat panel */}
-        {chatOpen && (
-        <div style={{ width: 380, minWidth: 300, display: "flex", flexDirection: "column", borderRight: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
-          <div style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-            {messages.length === 0 && (
-              <div style={{ marginTop: "16vh", padding: "0 8px" }}>
-                <div style={{ textAlign: "center", marginBottom: 24 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: C.primaryLight, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                    <Sparkles size={20} color={C.primary} />
+        {/* Floating chat widget */}
+        {chatOpen ? (
+          <div style={{
+            position: "absolute", bottom: 20, right: 20, width: 380,
+            height: "min(520px, calc(100% - 40px))",
+            borderRadius: 14, background: C.surface, border: `1px solid ${C.border}`,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column",
+            zIndex: 30, overflow: "hidden",
+          }}>
+            {/* Chat header */}
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "10px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Bot size={16} color={C.primary} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Blueprint AI</span>
+              </div>
+              <button onClick={() => setChatOpen(false)} style={{ ...btnIcon, width: 28, height: 28 }} title="Minimize chat">
+                <ChevronRight size={16} style={{ transform: "rotate(90deg)" }} />
+              </button>
+            </div>
+            {/* Chat messages */}
+            <div style={{ flex: 1, overflow: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+              {messages.length === 0 && (
+                <div style={{ marginTop: "12vh", padding: "0 4px" }}>
+                  <div style={{ textAlign: "center", marginBottom: 20 }}>
+                    <Sparkles size={18} color={C.primary} />
+                    <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 8 }}>What do you want to build?</p>
+                    <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Pick a template or describe your own</p>
                   </div>
-                  <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>What do you want to build?</p>
-                  <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Describe an architecture or pick a template</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    {EXAMPLE_PROMPTS.map((ex) => (
+                      <button
+                        key={ex.label}
+                        onClick={() => send(ex.prompt)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                          borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
+                          cursor: "pointer", textAlign: "left", transition: "all 0.15s", fontFamily: FONT.sans,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.background = C.primaryLight; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}
+                      >
+                        <ChevronRight size={12} color={C.primary} style={{ flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: C.text }}>{ex.label}</div>
+                          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 1 }}>{ex.prompt}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {EXAMPLE_PROMPTS.map((ex) => (
-                    <button
-                      key={ex.label}
-                      onClick={() => send(ex.prompt)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                        borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface,
-                        cursor: "pointer", textAlign: "left", transition: "all 0.15s",
-                        fontFamily: FONT.sans,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.background = C.primaryLight; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}
-                    >
-                      <ChevronRight size={14} color={C.primary} style={{ flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{ex.label}</div>
-                        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>{ex.prompt}</div>
-                      </div>
+              )}
+              {messages.map((m, i) => (
+                <div key={i} style={{
+                  display: "flex", gap: 6, alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "88%", flexDirection: m.role === "user" ? "row-reverse" : "row",
+                }}>
+                  {m.role === "assistant" && (
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: C.primaryLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                      <Bot size={12} color={C.primary} />
+                    </div>
+                  )}
+                  <div style={{
+                    padding: "8px 12px",
+                    borderRadius: m.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+                    background: m.role === "user" ? C.userBubble : C.assistantBubble,
+                    color: m.role === "user" ? "#fff" : C.text,
+                    fontSize: 12, lineHeight: 1.6,
+                  }}>
+                    <div style={{ whiteSpace: "pre-wrap" }}>
+                      {m.role === "assistant" ? extractExplanation(m.content) : m.content}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {loading && statusMsg && (
+                <div style={{
+                  alignSelf: "flex-start", maxWidth: "88%",
+                  padding: "8px 12px", borderRadius: "12px 12px 12px 4px",
+                  background: C.primaryLight, color: C.primary, fontSize: 12,
+                  display: "flex", alignItems: "center", gap: 6,
+                  border: `1px solid ${C.primaryMuted}`,
+                }}>
+                  <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} />
+                  <span style={{ fontFamily: FONT.mono, fontSize: 11 }}>{statusMsg}</span>
+                </div>
+              )}
+              {!loading && diagramXml && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
+                  {getSmartActions(diagramXml || "").map((action) => (
+                    <button key={action} onClick={() => send(action)} style={btnQuickAction}>
+                      <ChevronRight size={10} />{action}
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-            {messages.map((m, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 8, alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                maxWidth: "88%", flexDirection: m.role === "user" ? "row-reverse" : "row",
-              }}>
-                {m.role === "assistant" && (
-                  <div style={{ width: 24, height: 24, borderRadius: 6, background: C.primaryLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-                    <Bot size={13} color={C.primary} />
-                  </div>
-                )}
-                <div style={{
-                  padding: "10px 14px",
-                  borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-                  background: m.role === "user" ? C.userBubble : C.assistantBubble,
-                  color: m.role === "user" ? "#fff" : C.text,
-                  fontSize: 13, lineHeight: 1.6,
-                }}>
-                  <div style={{ whiteSpace: "pre-wrap" }}>
-                    {m.role === "assistant" ? extractExplanation(m.content) : m.content}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {loading && statusMsg && (
-              <div style={{
-                alignSelf: "flex-start", maxWidth: "88%",
-                padding: "10px 14px", borderRadius: "14px 14px 14px 4px",
-                background: C.primaryLight, color: C.primary, fontSize: 13,
-                display: "flex", alignItems: "center", gap: 8,
-                border: `1px solid ${C.primaryMuted}`,
-              }}>
-                <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
-                <span style={{ fontFamily: FONT.mono, fontSize: 12 }}>{statusMsg}</span>
-              </div>
-            )}
-            {!loading && diagramXml && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
-                {getSmartActions(diagramTitle || "").map((action) => (
-                  <button key={action} onClick={() => send(action)} style={btnQuickAction}>
-                    <ChevronRight size={12} />{action}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-          <form onSubmit={handleSubmit} style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}` }}>
-            <div style={{
-              display: "flex", alignItems: "center",
-              borderRadius: 10, border: `1px solid ${C.border}`,
-              background: C.surface, overflow: "hidden",
-              transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.primaryMuted}`; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; }}
-            >
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={loading ? "Generating..." : diagramKey ? "Modify this diagram..." : "Describe your architecture..."}
-                disabled={loading}
-                style={{
-                  flex: 1, padding: "10px 14px", border: "none", outline: "none",
-                  fontSize: 13, fontFamily: FONT.sans, color: C.text, background: "transparent",
-                }}
-                autoFocus
-              />
-              <button type="submit" disabled={loading || !input.trim()} style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                width: 40, height: 38, border: "none", cursor: "pointer",
-                background: loading || !input.trim() ? "transparent" : C.primary,
-                color: loading || !input.trim() ? C.textMuted : "#fff",
-                borderRadius: "0 9px 9px 0", transition: "all 0.15s",
-                marginRight: 1,
-              }}>
-                {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Send size={16} />}
-              </button>
+              )}
+              <div ref={bottomRef} />
             </div>
-          </form>
-        </div>
+            {/* Chat input */}
+            <form onSubmit={handleSubmit} style={{ padding: "10px 14px", borderTop: `1px solid ${C.border}` }}>
+              <div style={{
+                display: "flex", alignItems: "center",
+                borderRadius: 10, border: `1px solid ${C.border}`,
+                background: C.surface, overflow: "hidden",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+              }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.primaryMuted}`; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; }}
+              >
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={loading ? "Generating..." : diagramKey ? "Modify this diagram..." : "Describe your architecture..."}
+                  disabled={loading}
+                  style={{
+                    flex: 1, padding: "9px 12px", border: "none", outline: "none",
+                    fontSize: 12, fontFamily: FONT.sans, color: C.text, background: "transparent",
+                  }}
+                  autoFocus
+                />
+                <button type="submit" disabled={loading || !input.trim()} style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 36, height: 34, border: "none", cursor: "pointer",
+                  background: loading || !input.trim() ? "transparent" : C.primary,
+                  color: loading || !input.trim() ? C.textMuted : "#fff",
+                  borderRadius: "0 9px 9px 0", transition: "all 0.15s", marginRight: 1,
+                }}>
+                  {loading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Send size={14} />}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          /* Minimized chat bubble */
+          <button
+            onClick={() => setChatOpen(true)}
+            style={{
+              position: "absolute", bottom: 20, right: 20, zIndex: 30,
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 18px", borderRadius: 24, border: "none",
+              background: C.primary, color: "#fff", cursor: "pointer",
+              boxShadow: "0 4px 16px rgba(37,99,235,0.3)",
+              fontSize: 13, fontWeight: 600, fontFamily: FONT.sans,
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 6px 24px rgba(37,99,235,0.4)"}
+            onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 4px 16px rgba(37,99,235,0.3)"}
+          >
+            <MessageSquare size={16} />
+            Chat
+            {messages.length > 0 && (
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff", opacity: 0.7 }} />
+            )}
+          </button>
         )}
 
-        {/* Diagram viewer */}
+        {/* Diagram viewer — full width */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", background: C.bg }}>
           {loading && <DiagramSkeleton services={buildingServices} phase={statusPhase} />}
           {showDone && (
@@ -414,14 +458,18 @@ export default function App() {
           {diagramXml ? (
             <iframe
               ref={iframeRef}
-              src="https://embed.diagrams.net/?embed=1&proto=json&spin=1&libraries=1"
+              src="https://embed.diagrams.net/?embed=1&proto=json&spin=1&libraries=1&grid=1&noExitBtn=1&saveAndExit=0&splash=0"
               style={{ width: "100%", height: "100%", border: "none" }}
             />
           ) : !loading ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+              backgroundImage: "radial-gradient(circle, #d0d5dd 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ width: 56, height: 56, borderRadius: 14, background: C.primaryLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                  <FileCode2 size={28} color={C.primary} />
+                  <span style={{ color: C.primary, fontSize: 28, fontWeight: 700, fontFamily: FONT.sans }}>B</span>
                 </div>
                 <p style={{ color: C.textSecondary, fontSize: 14, fontWeight: 500 }}>Your diagram will appear here</p>
                 <p style={{ color: C.textMuted, fontSize: 12, marginTop: 4 }}>Describe an architecture to get started</p>
@@ -445,15 +493,16 @@ function extractExplanation(content: string): string {
   return text || "Diagram generated.";
 }
 
-/** Context-aware quick actions based on what's likely in the diagram. */
-function getSmartActions(title: string): string[] {
-  const t = title.toLowerCase();
+/** Context-aware quick actions based on what's NOT in the current diagram. */
+function getSmartActions(xml: string): string[] {
+  const lower = xml.toLowerCase();
   const actions: string[] = [];
-  if (!t.includes("cloudwatch") && !t.includes("monitor")) actions.push("Add CloudWatch monitoring");
-  if (!t.includes("waf") && !t.includes("shield")) actions.push("Add WAF security layer");
-  if (!t.includes("cloudfront") && !t.includes("cdn")) actions.push("Add CloudFront CDN");
-  if (!t.includes("cognito") && !t.includes("auth")) actions.push("Add Cognito authentication");
-  if (!t.includes("ci") && !t.includes("pipeline")) actions.push("Add CI/CD pipeline");
+  if (!lower.includes("cloudwatch")) actions.push("Add CloudWatch monitoring");
+  if (!lower.includes("waf")) actions.push("Add WAF security layer");
+  if (!lower.includes("cloudfront")) actions.push("Add CloudFront CDN");
+  if (!lower.includes("cognito")) actions.push("Add Cognito authentication");
+  if (!lower.includes("codepipeline") && !lower.includes("ci")) actions.push("Add CI/CD pipeline");
+  if (!lower.includes("elasticache") && !lower.includes("redis")) actions.push("Add ElastiCache caching");
   actions.push("Switch to top-down layout");
   return actions.slice(0, 3);
 }
