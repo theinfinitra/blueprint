@@ -6,7 +6,7 @@ import { C, FONT, btnPrimary, btnAction, btnActionPrimary, btnIcon, btnQuickActi
 import {
   PanelLeftClose, PanelLeftOpen, Download, Plus, LogOut, Undo2,
   Send, Loader2, Check, FileCode2, Clock, ChevronRight, Trash2, Sparkles, Bot,
-  MessageSquare,
+  MessageSquare, Paperclip, X,
 } from "lucide-react";
 
 // ── Design tokens imported from styles.ts ────────────────────────────────────
@@ -24,6 +24,7 @@ export default function App() {
   const [authed, setAuthed] = useState(isAuthenticated());
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [statusPhase, setStatusPhase] = useState<"thinking" | "building" | "done" | null>(null);
@@ -107,14 +108,22 @@ export default function App() {
     if (!msg || loading) return;
     const token = getToken();
     if (!token) { login(); return; }
+
+    // Build prompt with file context if attached
+    let fullPrompt = msg;
+    if (attachedFile) {
+      fullPrompt = `The user attached a file (${attachedFile.name}):\n---\n${attachedFile.content}\n---\n\n${msg}`;
+    }
+
     setInput("");
-    setMessages((m) => [...m, { role: "user", content: msg }]);
+    setAttachedFile(null);
+    setMessages((m) => [...m, { role: "user", content: attachedFile ? `📎 ${attachedFile.name}\n${msg}` : msg }]);
     setLoading(true);
     const known = ["API Gateway","Lambda","DynamoDB","S3","CloudFront","RDS","ECS","EKS","Fargate","ALB","NLB","Cognito","SQS","SNS","EventBridge","Step Functions","CloudWatch","CloudTrail","WAF","IAM","Bedrock","ElastiCache","Aurora","Route 53","EC2","NAT Gateway","VPC","Kinesis","Athena","Glue"];
-    const lower = msg.toLowerCase();
+    const lower = fullPrompt.toLowerCase();
     setBuildingServices(known.filter((s) => lower.includes(s.toLowerCase())));
     try {
-      const result: JobResult = await generateDiagram(msg, token, (s, phase) => { setStatusMsg(s); setStatusPhase(phase || null); }, diagramKey);
+      const result: JobResult = await generateDiagram(fullPrompt, token, (s, phase) => { setStatusMsg(s); setStatusPhase(phase || null); }, diagramKey);
       setMessages((m) => [...m, { role: "assistant", content: result.response || "Diagram generated." }]);
       if (result.diagram_url) {
         if (diagramXml) setPrevSpec(diagramXml);
@@ -136,7 +145,29 @@ export default function App() {
 
   const handleSubmit = (e: FormEvent) => { e.preventDefault(); send(); };
   const handleUndo = () => { if (!prevSpec) return; setDiagramXml(prevSpec); setDiagramTitle(extractTitle(prevSpec)); setPrevSpec(null); setMessages((m) => [...m, { role: "assistant", content: "Reverted to previous version." }]); };
-  const newDiagram = () => { setDiagramXml(null); setDiagramUrl(null); setDiagramKey(null); setDiagramTitle(null); setPrevSpec(null); setMessages([]); };
+  const newDiagram = () => { setDiagramXml(null); setDiagramUrl(null); setDiagramKey(null); setDiagramTitle(null); setPrevSpec(null); setMessages([]); setAttachedFile(null); };
+
+  const MAX_FILE_SIZE = 200 * 1024; // 200KB
+  const ALLOWED_EXTENSIONS = [".txt", ".md", ".yaml", ".yml", ".json", ".csv", ".tf", ".py", ".ts", ".js"];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      alert(`File too large (${(file.size / 1024).toFixed(0)}KB). Max 200KB.`);
+      return;
+    }
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      alert(`Unsupported file type. Supported: ${ALLOWED_EXTENSIONS.join(", ")}`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setAttachedFile({ name: file.name, content: reader.result as string });
+    reader.readAsText(file);
+    e.target.value = ""; // reset so same file can be re-attached
+  };
 
   const groupedDiagrams = groupByDate(savedDiagrams);
 
@@ -384,6 +415,20 @@ export default function App() {
             </div>
             {/* Chat input */}
             <form onSubmit={handleSubmit} style={{ padding: "10px 14px", borderTop: `1px solid ${C.border}` }}>
+              {attachedFile && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 6, marginBottom: 8,
+                  padding: "6px 10px", borderRadius: 8, background: C.primaryLight,
+                  fontSize: 11, color: C.primary, fontFamily: FONT.mono,
+                }}>
+                  <Paperclip size={12} />
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{attachedFile.name}</span>
+                  <span style={{ color: C.textMuted, flexShrink: 0 }}>{(attachedFile.content.length / 1024).toFixed(1)}KB</span>
+                  <button onClick={() => setAttachedFile(null)} style={{ ...btnIcon, width: 20, height: 20, color: C.primary }}>
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
               <div style={{
                 display: "flex", alignItems: "center",
                 borderRadius: 10, border: `1px solid ${C.border}`,
@@ -393,13 +438,17 @@ export default function App() {
                 onFocus={(e) => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.primaryMuted}`; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; }}
               >
+                <input type="file" ref={fileInputRef} onChange={handleFileAttach} accept={ALLOWED_EXTENSIONS.join(",")} style={{ display: "none" }} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} style={{ ...btnIcon, width: 34, height: 34, color: attachedFile ? C.primary : C.textMuted }} title="Attach file">
+                  <Paperclip size={14} />
+                </button>
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={loading ? "Generating..." : diagramKey ? "Modify this diagram..." : "Describe your architecture..."}
+                  placeholder={loading ? "Generating..." : attachedFile ? "Describe what to generate..." : diagramKey ? "Modify this diagram..." : "Describe your architecture..."}
                   disabled={loading}
                   style={{
-                    flex: 1, padding: "9px 12px", border: "none", outline: "none",
+                    flex: 1, padding: "9px 4px", border: "none", outline: "none",
                     fontSize: 12, fontFamily: FONT.sans, color: C.text, background: "transparent",
                   }}
                   autoFocus
