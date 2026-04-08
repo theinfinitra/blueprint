@@ -37,7 +37,7 @@ def _get_agent():
         model = BedrockModel(
             model_id=os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
             region_name=REGION,
-            max_tokens=4096,
+            max_tokens=8192,
         )
         _agent = Agent(
             model=model,

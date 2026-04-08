@@ -164,7 +164,13 @@ export default function App() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setAttachedFile({ name: file.name, content: reader.result as string });
+    reader.onload = () => {
+      let content = reader.result as string;
+      if (content.length > 30000) {
+        content = content.slice(0, 30000) + "\n\n[... truncated — file exceeded 30KB text limit ...]";
+      }
+      setAttachedFile({ name: file.name, content });
+    };
     reader.readAsText(file);
     e.target.value = ""; // reset so same file can be re-attached
   };

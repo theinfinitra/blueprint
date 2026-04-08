@@ -11,7 +11,7 @@ from src.tools.load_diagram import load_diagram
 model = BedrockModel(
     model_id=os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
     region_name=os.environ.get("BEDROCK_REGION", "us-east-1"),
-    max_tokens=4096,
+    max_tokens=8192,
 )
 
 agent = Agent(
