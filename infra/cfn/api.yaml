@@ -48,8 +48,8 @@ Resources:
                   - s3:DeleteObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::infinitra-diagram-agent-${Environment}
-                  - !Sub arn:aws:s3:::infinitra-diagram-agent-${Environment}/*
+                  - !Sub arn:aws:s3:::blueprint-diagrams-${Environment}
+                  - !Sub arn:aws:s3:::blueprint-diagrams-${Environment}/*
               - Effect: Allow
                 Action: lambda:InvokeFunction
                 Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:diagram-agent-${Environment}
@@ -69,7 +69,7 @@ Resources:
         - arm64
       Environment:
         Variables:
-          S3_BUCKET: !Sub infinitra-diagram-agent-${Environment}
+          S3_BUCKET: !Sub blueprint-diagrams-${Environment}
 
   # ── Cognito ──────────────────────────────────────────────────────────────
   CognitoDomain:

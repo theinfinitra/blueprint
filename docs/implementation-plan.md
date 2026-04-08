@@ -89,7 +89,7 @@ diagram-agent/
 
 | # | Task | Description |
 |---|---|---|
-| 11 | S3 bucket | Create `infinitra-diagram-agent-{env}` bucket with SSE-S3 encryption, lifecycle policy (auto-delete after 90 days), CORS for presigned URL downloads |
+| 11 | S3 bucket | Create `blueprint-diagrams-{env}` bucket with SSE-S3 encryption, lifecycle policy (auto-delete after 90 days), CORS for presigned URL downloads |
 | 12 | AgentCore deployment | `agentcore configure --entrypoint src/agent.py --name diagram-agent` → `agentcore launch`. Configure session TTL (30 min default). Configure retry: exponential backoff on Bedrock `ThrottlingException` (3 retries, 1s/2s/4s). |
 | 13 | Cognito integration | Configure AgentCore Identity with existing NoOne Cognito user pool. User ID from Cognito token used as S3 key prefix for tenant isolation. |
 | 14 | End-to-end test | Generate a diagram via the AgentCore endpoint, download the `.drawio`, open in draw.io, verify. Test refinement (2nd message modifies diagram). Test session timeout recovery (load_diagram after session expires). |
@@ -212,7 +212,7 @@ Environment variables:
 |---|---|---|
 | `BEDROCK_MODEL_ID` | LLM model for generation | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
 | `BEDROCK_REGION` | Bedrock region | `us-east-1` |
-| `S3_BUCKET` | Diagram storage bucket | `infinitra-diagram-agent-prd` |
+| `S3_BUCKET` | Diagram storage bucket | `blueprint-diagrams-prd` |
 | `LOG_LEVEL` | Logging level | `INFO` |
 
 ## 9. Cost Estimate

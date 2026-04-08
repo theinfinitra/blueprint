@@ -5,7 +5,7 @@
 #   ./infra/deploy-frontend.sh <env> <profile> <region>
 #
 # Examples:
-#   ./infra/deploy-frontend.sh stg infinitra-noone us-east-1
+#   ./infra/deploy-frontend.sh stg your-aws-profile us-east-1
 
 set -euo pipefail
 

@@ -13,7 +13,7 @@ from src.renderer.schema import parse_spec, validate_spec, normalize_spec
 from src.renderer.layout import compute_layout
 from src.renderer.emitter import emit_drawio
 
-S3_BUCKET = os.environ.get("S3_BUCKET", "infinitra-diagram-agent-dev")
+S3_BUCKET = os.environ.get("S3_BUCKET", "blueprint-diagrams")
 _s3 = None
 
 def _get_s3():

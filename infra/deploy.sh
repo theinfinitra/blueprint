@@ -5,8 +5,8 @@
 #   ./infra/deploy.sh <env> <profile> <region>
 #
 # Examples:
-#   ./infra/deploy.sh stg infinitra-noone us-east-1
-#   ./infra/deploy.sh prd infinitra-prd us-east-1
+#   ./infra/deploy.sh stg your-aws-profile us-east-1
+#   ./infra/deploy.sh prd your-prd-profile us-east-1
 
 set -euo pipefail
 

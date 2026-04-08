@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import boto3
 from strands import tool
 
-S3_BUCKET = os.environ.get("S3_BUCKET", "infinitra-diagram-agent-dev")
+S3_BUCKET = os.environ.get("S3_BUCKET", "blueprint-diagrams")
 _s3 = None
 
 # Set by the Lambda proxy when editing an existing diagram

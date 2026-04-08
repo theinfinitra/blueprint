@@ -17,7 +17,7 @@ import boto3
 sys.path.insert(0, os.path.dirname(__file__))
 
 REGION = os.environ.get("AWS_REGION", "us-east-1")
-BUCKET = os.environ.get("S3_BUCKET", "infinitra-diagram-agent-dev")
+BUCKET = os.environ.get("S3_BUCKET", "blueprint-diagrams")
 
 s3 = boto3.client("s3", region_name=REGION)
 lam = boto3.client("lambda", region_name=REGION)

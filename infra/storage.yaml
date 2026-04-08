@@ -11,7 +11,7 @@ Resources:
   DiagramBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub infinitra-diagram-agent-${Environment}
+      BucketName: !Sub blueprint-diagrams-${Environment}
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
