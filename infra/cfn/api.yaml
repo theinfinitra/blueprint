@@ -14,7 +14,7 @@ Parameters:
     Type: String
   FrontendUrl:
     Type: String
-    Default: http://localhost:5174
+    Default: http://localhost:5173
 
 Resources:
   # ── IAM ──────────────────────────────────────────────────────────────────
@@ -98,11 +98,11 @@ Resources:
       SupportedIdentityProviders:
         - COGNITO
       CallbackURLs:
-        - !Sub ${FrontendUrl}/callback
-        - http://localhost:5174/callback
+        - !Sub ${FrontendUrl}/blueprint/callback
+        - http://localhost:5173/blueprint/callback
       LogoutURLs:
-        - !Ref FrontendUrl
-        - http://localhost:5174
+        - !Sub ${FrontendUrl}/blueprint/
+        - http://localhost:5173/blueprint/
       PreventUserExistenceErrors: ENABLED
       AccessTokenValidity: 1
       IdTokenValidity: 1
@@ -121,6 +121,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - !Ref FrontendUrl
+          - http://localhost:5173
         AllowMethods:
           - GET
           - POST
@@ -230,6 +231,6 @@ Outputs:
       VITE_API_ENDPOINT=${Api.ApiEndpoint}
       VITE_COGNITO_DOMAIN=https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com
       VITE_CLIENT_ID=${AppClient}
-      VITE_REDIRECT_URI=${FrontendUrl}/callback
+      VITE_REDIRECT_URI=${FrontendUrl}/blueprint/callback
       VITE_COGNITO_POOL_ID=${CognitoUserPoolId}
       VITE_REGION=${AWS::Region}

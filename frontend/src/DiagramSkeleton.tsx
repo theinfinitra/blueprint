@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { KEYFRAMES, skeletonOverlay, skeletonOrb, skeletonOrbInner, skeletonStatusBar, skeletonProgressTrack, skeletonProgressFill } from "./styles";
 
 interface Props {
   services: string[];
@@ -35,10 +36,10 @@ export function DiagramSkeleton({ services, phase }: Props) {
 
   if (phase === "thinking") {
     return (
-      <div ref={containerRef} style={overlayStyle}>
-        <style>{keyframes}</style>
+      <div ref={containerRef} style={skeletonOverlay}>
+        <style>{KEYFRAMES}</style>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={orbStyle}><div style={orbInnerStyle} /></div>
+          <div style={skeletonOrb}><div style={skeletonOrbInner} /></div>
           <p style={{ color: "#555", fontSize: 14, marginTop: 20, animation: "fadeInUp 0.6s ease" }}>
             Understanding your architecture...
           </p>
@@ -87,8 +88,8 @@ export function DiagramSkeleton({ services, phase }: Props) {
   const pillY = offsetY + gridH + 30;
 
   return (
-    <div ref={containerRef} style={overlayStyle}>
-      <style>{keyframes}</style>
+    <div ref={containerRef} style={skeletonOverlay}>
+      <style>{KEYFRAMES}</style>
       <svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -165,10 +166,10 @@ export function DiagramSkeleton({ services, phase }: Props) {
       </svg>
 
       {/* Progress pill — positioned right below the grid */}
-      <div style={{ ...statusBarStyle, top: pillY, left: "50%", transform: "translateX(-50%)" }}>
-        <div style={progressTrackStyle}>
+      <div style={{ ...skeletonStatusBar, top: pillY, left: "50%", transform: "translateX(-50%)" }}>
+        <div style={skeletonProgressTrack}>
           <div style={{
-            ...progressFillStyle,
+            ...skeletonProgressFill,
             width: services.length > 0 ? `${Math.min((visibleCount / services.length) * 100, 100)}%` : "0%",
           }} />
         </div>
@@ -182,75 +183,4 @@ export function DiagramSkeleton({ services, phase }: Props) {
   );
 }
 
-const keyframes = `
-@keyframes glowPulse {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 0.6; }
-}
-@keyframes borderGlow {
-  0%, 100% { stroke: #c8d4e8; }
-  50% { stroke: #88aaee; }
-}
-@keyframes iconPulse {
-  0%, 100% { fill: #e8f0fe; }
-  50% { fill: #c0d4f8; }
-}
-@keyframes drawLine {
-  to { stroke-dashoffset: 0; }
-}
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes orbSpin {
-  to { transform: rotate(360deg); }
-}
-@keyframes orbPulse {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.2); opacity: 1; }
-}
-@keyframes progressShimmer {
-  from { background-position: -200% 0; }
-  to { background-position: 200% 0; }
-}
-`;
-
-const overlayStyle: React.CSSProperties = {
-  position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-  background: "rgba(250,251,252,0.97)",
-  zIndex: 10,
-  display: "flex", alignItems: "center", justifyContent: "center",
-};
-
-const orbStyle: React.CSSProperties = {
-  width: 48, height: 48, borderRadius: "50%",
-  border: "2px solid #E2E8F0", borderTopColor: "#2563EB",
-  animation: "orbSpin 1s linear infinite",
-};
-
-const orbInnerStyle: React.CSSProperties = {
-  width: 20, height: 20, borderRadius: "50%",
-  background: "#2563EB", margin: "12px auto",
-  animation: "orbPulse 2s ease-in-out infinite",
-};
-
-const statusBarStyle: React.CSSProperties = {
-  position: "absolute",
-  display: "flex", alignItems: "center", gap: 12,
-  padding: "8px 20px", borderRadius: 24,
-  background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", border: "1px solid #e8ecf2",
-  minWidth: 280,
-};
-
-const progressTrackStyle: React.CSSProperties = {
-  width: 60, height: 4, borderRadius: 2,
-  background: "#e8ecf2", overflow: "hidden",
-};
-
-const progressFillStyle: React.CSSProperties = {
-  height: "100%", borderRadius: 2,
-  background: "linear-gradient(90deg, #2563EB, #60A5FA, #2563EB)",
-  backgroundSize: "200% 100%",
-  animation: "progressShimmer 1.5s linear infinite",
-  transition: "width 0.4s ease",
-};
+// Styles imported from styles.ts

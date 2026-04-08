@@ -32,18 +32,17 @@ def _get_agent():
         from strands.models.bedrock import BedrockModel
         from src.prompts.spec_system_prompt import get_system_prompt
         from src.tools.render_drawio import render_drawio
-        from src.tools.save_diagram import save_diagram
         from src.tools.load_diagram import load_diagram
 
         model = BedrockModel(
-            model_id=os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0"),
+            model_id=os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
             region_name=REGION,
-            max_tokens=16384,
+            max_tokens=4096,
         )
         _agent = Agent(
             model=model,
             system_prompt=get_system_prompt(),
-            tools=[render_drawio, save_diagram, load_diagram],
+            tools=[render_drawio, load_diagram],
         )
     return _agent
 
@@ -63,8 +62,7 @@ def handler(event, context):
 
             # If editing an existing diagram, load its spec first
             if diagram_key:
-                from src.tools.render_drawio import set_current_spec
-                from src.tools.save_diagram import set_current_diagram_key
+                from src.tools.render_drawio import set_current_spec, set_current_diagram_key
                 set_current_diagram_key(diagram_key)
                 spec_key = diagram_key.replace(".drawio", ".spec.json")
                 try:

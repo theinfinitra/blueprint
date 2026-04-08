@@ -8,6 +8,7 @@ import json
 VALID_CLUSTER_TYPES = {"aws_cloud", "region", "vpc", "public_subnet", "private_subnet", "generic"}
 VALID_EDGE_STYLES = {"solid", "dashed"}
 MAX_LABEL_LENGTH = 25
+VALID_DIRECTIONS = {"LR", "TB", "RL", "BT"}
 
 
 @dataclass
@@ -31,6 +32,7 @@ class Cluster:
 @dataclass
 class DiagramSpec:
     title: str
+    direction: str = "LR"  # LR, TB, RL, BT
     nodes: dict[str, Node] = field(default_factory=dict)
     edges: dict[str, Edge] = field(default_factory=dict)
     clusters: dict[str, Cluster] = field(default_factory=dict)
@@ -46,6 +48,7 @@ def parse_spec(raw: str | dict) -> DiagramSpec:
 
     return DiagramSpec(
         title=data.get("title", "Architecture"),
+        direction=data.get("direction", "LR"),
         nodes=nodes,
         edges=edges,
         clusters=clusters,
@@ -74,6 +77,11 @@ def normalize_spec(spec: DiagramSpec) -> DiagramSpec:
     for edge in spec.edges.values():
         if edge.style not in VALID_EDGE_STYLES:
             edge.style = "solid"
+
+    # Clamp direction
+    spec.direction = spec.direction.upper()
+    if spec.direction not in VALID_DIRECTIONS:
+        spec.direction = "LR"
 
     # Clamp cluster types to valid values
     for cluster in spec.clusters.values():
