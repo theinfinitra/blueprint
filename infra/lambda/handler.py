@@ -78,6 +78,7 @@ def handler(event, context):
             # Find diagram created during this job
             diagram_key = None
             diagram_url = None
+            diagram_xml = None
             try:
                 objs = s3.list_objects_v2(Bucket=BUCKET, Prefix="diagrams/", MaxKeys=100)
                 for obj in sorted(objs.get("Contents", []), key=lambda x: x["LastModified"], reverse=True):

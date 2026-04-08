@@ -48,7 +48,7 @@ export function DiagramSkeleton({ services, phase }: Props) {
     );
   }
 
-  if (phase !== "building") return null;
+  if (phase !== "building" || services.length === 0) return null;
 
   // Compute centered positions
   const cols = Math.min(services.length, MAX_COLS);
