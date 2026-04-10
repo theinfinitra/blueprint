@@ -12,13 +12,9 @@ Blueprint: [patches diagram in ~5s] → updated .drawio file
 
 ## Screenshots
 
-| Generate from natural language | Loading animation | Attach architecture docs |
-|:---:|:---:|:---:|
+|       Generate from natural language       |            Loading animation             |             Attach architecture docs             |
+| :----------------------------------------: | :--------------------------------------: | :----------------------------------------------: |
 | ![Generate](docs/screenshots/generate.png) | ![Loading](docs/screenshots/loading.png) | ![Attachment](docs/screenshots/attachment-1.png) |
-
-| Attachment result |
-|:---:|
-| ![Attachment result](docs/screenshots/attachment-2.png) |
 
 ## How It Works
 
@@ -164,11 +160,11 @@ cp infra/config/stg.env.example infra/config/stg.env
 
 ### Why JSON spec + renderer instead of LLM-generated XML?
 
-| Approach | Tokens | Time | Reliability |
-|----------|--------|------|-------------|
-| LLM generates draw.io XML | ~4000 | ~3 min | Fragile (malformed XML) |
-| LLM generates JSON spec | ~400 | ~10s | Deterministic renderer |
-| LLM generates JSON patch | ~60 | ~5s | Incremental edits |
+| Approach                  | Tokens | Time   | Reliability             |
+| ------------------------- | ------ | ------ | ----------------------- |
+| LLM generates draw.io XML | ~4000  | ~3 min | Fragile (malformed XML) |
+| LLM generates JSON spec   | ~400   | ~10s   | Deterministic renderer  |
+| LLM generates JSON patch  | ~60    | ~5s    | Incremental edits       |
 
 The renderer enforces the style guide in code — icon sizes, fonts, colors, container hierarchy are never LLM-dependent.
 
