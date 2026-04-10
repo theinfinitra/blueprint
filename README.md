@@ -14,7 +14,11 @@ Blueprint: [patches diagram in ~5s] → updated .drawio file
 
 | Generate from natural language | Loading animation | Attach architecture docs |
 |:---:|:---:|:---:|
-| ![Generate](docs/screenshots/generate.png) | ![Loading](docs/screenshots/loading.png) | ![Attachment](docs/screenshots/attachment.png) |
+| ![Generate](docs/screenshots/generate.png) | ![Loading](docs/screenshots/loading.png) | ![Attachment](docs/screenshots/attachment-1.png) |
+
+| Attachment result |
+|:---:|
+| ![Attachment result](docs/screenshots/attachment-2.png) |
 
 ## How It Works
 

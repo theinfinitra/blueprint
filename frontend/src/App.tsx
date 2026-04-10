@@ -203,11 +203,11 @@ export default function App() {
           <div style={{ width: 28, height: 28, borderRadius: 7, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, fontFamily: FONT.sans }}>B</span>
           </div>
-          <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Blueprint</span>
+          <span style={{ fontSize: 16, fontWeight: 600, color: C.text }}>Blueprint</span>
           {diagramTitle && (
             <>
               <div style={{ width: 1, height: 18, background: C.border }} />
-              <span style={{ fontSize: 15, color: C.text, fontWeight: 700 }}>{diagramTitle}</span>
+              <span style={{ fontSize: 16, color: C.text, fontWeight: 700 }}>{diagramTitle}</span>
             </>
           )}
         </div>
@@ -244,7 +244,7 @@ export default function App() {
             <div style={{ flex: 1, overflow: "auto", padding: "4px 0" }}>
               {Object.entries(groupedDiagrams).map(([group, diagrams]) => (
                 <div key={group}>
-                  <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ padding: "8px 16px 4px", fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
                     <Clock size={10} />{group}
                   </div>
                   {diagrams.map((d) => {
@@ -271,7 +271,7 @@ export default function App() {
                       >
                         <FileCode2 size={14} color={active ? C.primary : C.textMuted} style={{ flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? C.text : C.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: FONT.mono }}>
+                          <div style={{ fontSize: 13, fontWeight: active ? 600 : 400, color: active ? C.text : C.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: FONT.mono }}>
                             {humanName(d.name)}
                           </div>
                         </div>
@@ -322,8 +322,8 @@ export default function App() {
         {/* Floating chat widget */}
         {chatOpen ? (
           <div style={{
-            position: "absolute", bottom: 20, right: 20, width: 380,
-            height: "min(520px, calc(100% - 40px))",
+            position: "absolute", bottom: 20, right: 20, width: 400,
+            height: "min(600px, calc(100% - 40px))",
             borderRadius: 14, background: C.surface, border: `1px solid ${C.border}`,
             boxShadow: "0 8px 32px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column",
             zIndex: 30, overflow: "hidden",
@@ -347,7 +347,7 @@ export default function App() {
                 <div style={{ marginTop: "12vh", padding: "0 4px" }}>
                   <div style={{ textAlign: "center", marginBottom: 20 }}>
                     <Sparkles size={18} color={C.primary} />
-                    <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 8 }}>What do you want to build?</p>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: C.text, marginTop: 8 }}>What do you want to build?</p>
                     <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Pick a template or describe your own</p>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -366,7 +366,7 @@ export default function App() {
                         <ChevronRight size={12} color={C.primary} style={{ flexShrink: 0 }} />
                         <div>
                           <div style={{ fontSize: 12, fontWeight: 500, color: C.text }}>{ex.label}</div>
-                          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 1 }}>{ex.prompt}</div>
+                          <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>{ex.prompt}</div>
                         </div>
                       </button>
                     ))}
@@ -388,7 +388,7 @@ export default function App() {
                     borderRadius: m.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
                     background: m.role === "user" ? C.userBubble : C.assistantBubble,
                     color: m.role === "user" ? "#fff" : C.text,
-                    fontSize: 12, lineHeight: 1.6,
+                    fontSize: 14, lineHeight: 1.6,
                   }}>
                     <div style={{ whiteSpace: "pre-wrap" }}>
                       {m.role === "assistant" ? extractExplanation(m.content) : m.content}
@@ -405,7 +405,7 @@ export default function App() {
                   border: `1px solid ${C.primaryMuted}`,
                 }}>
                   <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} />
-                  <span style={{ fontFamily: FONT.mono, fontSize: 11 }}>{statusMsg}</span>
+                  <span style={{ fontFamily: FONT.mono, fontSize: 13 }}>{statusMsg}</span>
                 </div>
               )}
               {!loading && diagramXml && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (
@@ -445,8 +445,8 @@ export default function App() {
                 onBlur={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; }}
               >
                 <input type="file" ref={fileInputRef} onChange={handleFileAttach} accept={ALLOWED_EXTENSIONS.join(",")} style={{ display: "none" }} />
-                <button type="button" onClick={() => fileInputRef.current?.click()} style={{ ...btnIcon, width: 34, height: 34, color: attachedFile ? C.primary : C.textMuted }} title="Attach file">
-                  <Paperclip size={14} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} style={{ ...btnIcon, width: 38, height: 40, color: attachedFile ? C.primary : C.textMuted }} title="Attach file">
+                  <Paperclip size={15} />
                 </button>
                 <input
                   value={input}
@@ -454,19 +454,19 @@ export default function App() {
                   placeholder={loading ? "Generating..." : attachedFile ? "Describe what to generate..." : diagramKey ? "Modify this diagram..." : "Describe your architecture..."}
                   disabled={loading}
                   style={{
-                    flex: 1, padding: "9px 4px", border: "none", outline: "none",
-                    fontSize: 12, fontFamily: FONT.sans, color: C.text, background: "transparent",
+                    flex: 1, padding: "11px 4px", border: "none", outline: "none",
+                    fontSize: 14, fontFamily: FONT.sans, color: C.text, background: "transparent",
                   }}
                   autoFocus
                 />
                 <button type="submit" disabled={loading || !input.trim()} style={{
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  width: 36, height: 34, border: "none", cursor: "pointer",
+                  width: 40, height: 40, border: "none", cursor: "pointer",
                   background: loading || !input.trim() ? "transparent" : C.primary,
                   color: loading || !input.trim() ? C.textMuted : "#fff",
                   borderRadius: "0 9px 9px 0", transition: "all 0.15s", marginRight: 1,
                 }}>
-                  {loading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Send size={14} />}
+                  {loading ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> : <Send size={15} />}
                 </button>
               </div>
             </form>

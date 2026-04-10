@@ -35,14 +35,14 @@ export const FONT = {
 // ── Button styles ────────────────────────────────────────────────────────────
 export const btnPrimary: CSSProperties = {
   borderRadius: 8, border: "none", background: C.primary, color: "#fff",
-  fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT.sans,
+  fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FONT.sans,
   transition: "background 0.15s",
 };
 
 export const btnGhost: CSSProperties = {
   display: "flex", alignItems: "center", gap: 5,
   padding: "5px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
-  background: "transparent", fontSize: 12, fontWeight: 500, cursor: "pointer",
+  background: "transparent", fontSize: 13, fontWeight: 500, cursor: "pointer",
   color: C.textSecondary, fontFamily: FONT.sans,
   transition: "all 0.15s",
 };
@@ -50,7 +50,7 @@ export const btnGhost: CSSProperties = {
 export const btnAction: CSSProperties = {
   display: "flex", alignItems: "center", gap: 5,
   padding: "5px 12px", borderRadius: 7, border: `1px solid ${C.border}`,
-  background: C.surface, fontSize: 12, fontWeight: 500, cursor: "pointer",
+  background: C.surface, fontSize: 13, fontWeight: 500, cursor: "pointer",
   color: C.text, fontFamily: FONT.sans,
   transition: "all 0.15s", boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
 };
@@ -58,7 +58,7 @@ export const btnAction: CSSProperties = {
 export const btnActionPrimary: CSSProperties = {
   display: "flex", alignItems: "center", gap: 5,
   padding: "5px 12px", borderRadius: 7, border: "none",
-  background: C.primary, fontSize: 12, fontWeight: 600, cursor: "pointer",
+  background: C.primary, fontSize: 14, fontWeight: 600, cursor: "pointer",
   color: "#FFFFFF", fontFamily: FONT.sans,
   transition: "all 0.15s", boxShadow: "0 1px 3px rgba(37,99,235,0.3)",
 };
@@ -74,7 +74,7 @@ export const btnQuickAction: CSSProperties = {
   display: "flex", alignItems: "center", gap: 4,
   padding: "5px 12px", borderRadius: 16,
   border: `1px solid ${C.border}`, background: C.surface,
-  fontSize: 11, fontWeight: 500, cursor: "pointer", color: C.textSecondary,
+  fontSize: 13, fontWeight: 500, cursor: "pointer", color: C.textSecondary,
   fontFamily: FONT.sans, transition: "all 0.15s", whiteSpace: "nowrap",
 };
 
