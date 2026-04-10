@@ -10,6 +10,12 @@ You: "Add CloudFront CDN in front of the ALB"
 Blueprint: [patches diagram in ~5s] → updated .drawio file
 ```
 
+## Screenshots
+
+| Generate from natural language | Loading animation | Attach architecture docs |
+|:---:|:---:|:---:|
+| ![Generate](docs/screenshots/generate.png) | ![Loading](docs/screenshots/loading.png) | ![Attachment](docs/screenshots/attachment.png) |
+
 ## How It Works
 
 Blueprint uses a **two-phase architecture** that separates what to draw (LLM) from how to draw it (renderer):
