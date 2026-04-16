@@ -86,9 +86,13 @@ def render_drawio(spec_json: str, filename: str = "diagram") -> str:
     if errors:
         return json.dumps({"status": "error", "details": "; ".join(errors)})
 
-    # Render
-    layout = compute_layout(spec, direction=spec.direction)
+    # Render — pass prior positions so existing nodes stay pinned
+    prior = spec.positions if spec.positions else None
+    layout = compute_layout(spec, direction=spec.direction, prior_positions=prior)
     xml = emit_drawio(spec, layout)
+
+    # Persist computed positions back into spec for future edits
+    spec_dict["positions"] = {nid: list(pos) for nid, pos in layout.positions.items()}
 
     # Save to S3 (update in place if editing)
     s3 = _get_s3()

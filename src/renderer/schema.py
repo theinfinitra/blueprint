@@ -36,6 +36,7 @@ class DiagramSpec:
     nodes: dict[str, Node] = field(default_factory=dict)
     edges: dict[str, Edge] = field(default_factory=dict)
     clusters: dict[str, Cluster] = field(default_factory=dict)
+    positions: dict[str, list[float]] = field(default_factory=dict)  # node_id → [x, y] from manual edits
 
 
 def parse_spec(raw: str | dict) -> DiagramSpec:
@@ -45,6 +46,7 @@ def parse_spec(raw: str | dict) -> DiagramSpec:
     nodes = {k: Node(**v) for k, v in data.get("nodes", {}).items()}
     edges = {k: Edge(**v) for k, v in data.get("edges", {}).items()}
     clusters = {k: Cluster(**v) for k, v in data.get("clusters", {}).items()}
+    positions = {k: v for k, v in data.get("positions", {}).items()}
 
     return DiagramSpec(
         title=data.get("title", "Architecture"),
@@ -52,6 +54,7 @@ def parse_spec(raw: str | dict) -> DiagramSpec:
         nodes=nodes,
         edges=edges,
         clusters=clusters,
+        positions=positions,
     )
 
 

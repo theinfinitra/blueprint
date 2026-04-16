@@ -20,7 +20,89 @@ class LayoutResult:
 NODE_W, NODE_H = 78, 78
 
 
-def compute_layout(spec: DiagramSpec, direction: str = "LR") -> LayoutResult:
+def compute_layout(spec: DiagramSpec, direction: str = "LR",
+                   prior_positions: dict[str, list[float]] | None = None) -> LayoutResult:
+    """Compute layout. If prior_positions is provided, pin existing nodes and
+    use dot-computed deltas to place only the new nodes."""
+
+    dot_layout = _dot_layout(spec, direction)
+
+    # No prior positions → fresh layout, return dot result directly
+    if not prior_positions:
+        return dot_layout
+
+    new_nodes = {nid for nid in spec.nodes if nid not in prior_positions}
+    if not new_nodes:
+        # All nodes have prior positions — use them as-is, recompute cluster bounds
+        positions = {nid: (round(prior_positions[nid][0]), round(prior_positions[nid][1]))
+                     for nid in spec.nodes if nid in prior_positions}
+        return LayoutResult(positions=positions, node_size=(NODE_W, NODE_H),
+                            cluster_bounds=_compute_cluster_bounds(spec, positions),
+                            graph_width=dot_layout.graph_width, graph_height=dot_layout.graph_height)
+
+    # Hybrid: pin existing nodes, place new nodes using dot deltas
+    positions: dict[str, tuple[float, float]] = {}
+    for nid in spec.nodes:
+        if nid in prior_positions:
+            positions[nid] = (round(prior_positions[nid][0]), round(prior_positions[nid][1]))
+
+    for nid in new_nodes:
+        # Find a connected neighbor that has a prior position (anchor)
+        anchor_id = _find_anchor(nid, spec, prior_positions)
+        if anchor_id and anchor_id in dot_layout.positions and nid in dot_layout.positions:
+            # Apply the delta dot computed between anchor and new node
+            ax, ay = dot_layout.positions[anchor_id]
+            nx, ny = dot_layout.positions[nid]
+            dx, dy = nx - ax, ny - ay
+            px, py = prior_positions[anchor_id]
+            positions[nid] = (round(px + dx), round(py + dy))
+        elif nid in dot_layout.positions:
+            positions[nid] = dot_layout.positions[nid]
+        else:
+            positions[nid] = (0, 0)
+
+    return LayoutResult(positions=positions, node_size=(NODE_W, NODE_H),
+                        cluster_bounds=_compute_cluster_bounds(spec, positions),
+                        graph_width=dot_layout.graph_width, graph_height=dot_layout.graph_height)
+
+
+def _find_anchor(nid: str, spec: DiagramSpec, prior: dict[str, list[float]]) -> str | None:
+    """Find the best connected neighbor with a known position to anchor a new node."""
+    # Prefer source (upstream) neighbors, then targets
+    for edge in spec.edges.values():
+        if edge.target == nid and edge.source in prior:
+            return edge.source
+        if edge.source == nid and edge.target in prior:
+            return edge.target
+    return None
+
+
+def _compute_cluster_bounds(spec: DiagramSpec, positions: dict[str, tuple[float, float]],
+                            ) -> dict[str, tuple[float, float, float, float]]:
+    """Compute cluster bounding boxes from node positions."""
+    PAD = 40
+    bounds: dict[str, tuple[float, float, float, float]] = {}
+    for cid, cluster in spec.clusters.items():
+        child_positions = []
+        for child in cluster.children:
+            if child in positions:
+                child_positions.append(positions[child])
+            elif child in bounds:
+                bx, by, bw, bh = bounds[child]
+                child_positions.append((bx, by))
+                child_positions.append((bx + bw, by + bh))
+        if not child_positions:
+            continue
+        xs = [p[0] for p in child_positions]
+        ys = [p[1] for p in child_positions]
+        x0, y0 = min(xs) - PAD, min(ys) - PAD
+        x1, y1 = max(xs) + NODE_W + PAD, max(ys) + NODE_H + PAD
+        bounds[cid] = (round(x0), round(y0), round(x1 - x0), round(y1 - y0))
+    return bounds
+
+
+def _dot_layout(spec: DiagramSpec, direction: str) -> LayoutResult:
+    """Run standard dot layout on the full spec."""
     g = graphviz.Digraph(engine="dot", format="json")
 
     n = len(spec.nodes)
@@ -32,10 +114,10 @@ def compute_layout(spec: DiagramSpec, direction: str = "LR") -> LayoutResult:
         nodesep=nodesep,
         ranksep=ranksep,
         pad="0.8",
-        splines="polyline",    # cleaner than ortho, less spacing bloat
+        splines="polyline",
         concentrate="false",
         newrank="true",
-        compound="true",       # allow edges between clusters
+        compound="true",
     )
 
     # Build child→parent maps
@@ -70,12 +152,10 @@ def compute_layout(spec: DiagramSpec, direction: str = "LR") -> LayoutResult:
                    width=str(NODE_W / 72), height=str(NODE_H / 72),
                    shape="box", fixedsize="true")
 
-    # Add edges with weights — primary flow edges get higher weight to stay straight
     for eid, edge in spec.edges.items():
         attrs: dict[str, str] = {}
         if edge.label:
             attrs["label"] = edge.label
-        # Dashed edges (monitoring, secondary) get lower weight — can bend more
         if edge.style == "dashed":
             attrs["weight"] = "1"
             attrs["style"] = "dashed"

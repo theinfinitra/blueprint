@@ -4,7 +4,7 @@ import { generateDiagram, listDiagrams, fetchDiagram, saveDiagramToS3, deleteDia
 import { DiagramSkeleton } from "./DiagramSkeleton";
 import { C, FONT, btnPrimary, btnAction, btnActionPrimary, btnIcon, btnQuickAction, KEYFRAMES } from "./styles";
 import {
-  PanelLeftClose, PanelLeftOpen, Download, Plus, LogOut, Undo2,
+  PanelLeftClose, PanelLeftOpen, Download, Plus, LogOut, History,
   Send, Loader2, Check, FileCode2, Clock, ChevronRight, Trash2, Sparkles, Bot,
   MessageSquare, Paperclip, X,
 } from "lucide-react";
@@ -38,10 +38,12 @@ export default function App() {
   const [chatOpen, setChatOpen] = useState(true);
   const [iframeReady, setIframeReady] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [prevSpec, setPrevSpec] = useState<string | null>(null);
+  const [versionStack, setVersionStack] = useState<string[]>([]);
   const [showDone, setShowDone] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingXml = useRef<string | null>(null);
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get("code");
@@ -78,6 +80,23 @@ export default function App() {
             });
           }
         }
+        if (msg.event === "autosave" && msg.xml && diagramKey) {
+          pendingXml.current = msg.xml;
+          if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+          autosaveTimer.current = setTimeout(() => {
+            if (!pendingXml.current) return;
+            const token = getToken();
+            if (token) {
+              setSaveStatus("saving");
+              saveDiagramToS3(pendingXml.current, diagramKey, token).then((ok) => {
+                setSaveStatus(ok ? "saved" : "error");
+                if (ok) setDiagramXml(pendingXml.current!);
+                pendingXml.current = null;
+                setTimeout(() => setSaveStatus(null), 2000);
+              });
+            }
+          }, 30000);
+        }
         if (msg.event === "exit") {
           iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ action: "export", format: "xml" }), "*");
         }
@@ -91,9 +110,29 @@ export default function App() {
     return () => window.removeEventListener("message", onMessage);
   }, [diagramKey]);
 
+  // Save pending changes when user clicks away from the diagram
+  useEffect(() => {
+    const onBlur = () => {
+      if (!pendingXml.current || !diagramKey) return;
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+      const token = getToken();
+      if (token) {
+        setSaveStatus("saving");
+        saveDiagramToS3(pendingXml.current, diagramKey, token).then((ok) => {
+          setSaveStatus(ok ? "saved" : "error");
+          if (ok) setDiagramXml(pendingXml.current!);
+          pendingXml.current = null;
+          setTimeout(() => setSaveStatus(null), 2000);
+        });
+      }
+    };
+    window.addEventListener("blur", onBlur);
+    return () => window.removeEventListener("blur", onBlur);
+  }, [diagramKey]);
+
   const loadXmlIntoIframe = useCallback((xml: string) => {
     if (!iframeRef.current?.contentWindow) return;
-    iframeRef.current.contentWindow.postMessage(JSON.stringify({ action: "load", xml, autosave: 0 }), "*");
+    iframeRef.current.contentWindow.postMessage(JSON.stringify({ action: "load", xml, autosave: 1 }), "*");
   }, []);
 
   useEffect(() => { if (diagramXml && iframeReady) loadXmlIntoIframe(diagramXml); }, [diagramXml, iframeReady, loadXmlIntoIframe]);
@@ -126,7 +165,7 @@ export default function App() {
       const result: JobResult = await generateDiagram(fullPrompt, token, (s, phase) => { setStatusMsg(s); setStatusPhase(phase || null); }, diagramKey);
       setMessages((m) => [...m, { role: "assistant", content: result.response || "Diagram generated." }]);
       if (result.diagram_url) {
-        if (diagramXml) setPrevSpec(diagramXml);
+        if (diagramXml) setVersionStack((s) => [...s.slice(-9), diagramXml]);
         setDiagramUrl(result.diagram_url);
         if (result.diagram_key) setDiagramKey(result.diagram_key);
         const xml = result.diagram_xml || await fetchDiagram(result.diagram_url);
@@ -144,8 +183,8 @@ export default function App() {
   };
 
   const handleSubmit = (e: FormEvent) => { e.preventDefault(); send(); };
-  const handleUndo = () => { if (!prevSpec) return; setDiagramXml(prevSpec); setDiagramTitle(extractTitle(prevSpec)); setPrevSpec(null); setMessages((m) => [...m, { role: "assistant", content: "Reverted to previous version." }]); };
-  const newDiagram = () => { setDiagramXml(null); setDiagramUrl(null); setDiagramKey(null); setDiagramTitle(null); setPrevSpec(null); setMessages([]); setAttachedFile(null); };
+  const handleUndo = () => { if (!versionStack.length) return; const prev = versionStack[versionStack.length - 1]; setVersionStack((s) => s.slice(0, -1)); setDiagramXml(prev); setDiagramTitle(extractTitle(prev)); setMessages((m) => [...m, { role: "assistant", content: "Reverted to previous version." }]); };
+  const newDiagram = () => { setDiagramXml(null); setDiagramUrl(null); setDiagramKey(null); setDiagramTitle(null); setVersionStack([]); setMessages([]); setAttachedFile(null); };
 
   const MAX_FILE_SIZE = 200 * 1024; // 200KB
   const ALLOWED_EXTENSIONS = [".txt", ".md", ".yaml", ".yml", ".json", ".csv", ".tf", ".py", ".ts", ".js"];
@@ -219,7 +258,7 @@ export default function App() {
               {saveStatus === "saved" ? "Saved" : saveStatus === "saving" ? "Saving..." : "Save failed"}
             </span>
           )}
-          {prevSpec && <button onClick={handleUndo} style={btnAction} title="Undo last change"><Undo2 size={14} /><span>Undo</span></button>}
+          {versionStack.length > 0 && <button onClick={handleUndo} style={btnAction} title="Revert to previous AI version"><History size={14} /><span>Revert</span></button>}
           <button onClick={newDiagram} style={btnActionPrimary}><Plus size={14} /><span>New</span></button>
           {diagramUrl && (
             <a href={diagramUrl} download="diagram.drawio" style={{ ...btnAction, textDecoration: "none" }}>
@@ -256,7 +295,7 @@ export default function App() {
                           const xml = await fetchDiagram(d.url);
                           if (xml) {
                             setDiagramXml(xml); setDiagramUrl(d.url); setDiagramKey(d.key);
-                            setDiagramTitle(extractTitle(xml) || d.name); setPrevSpec(null);
+                            setDiagramTitle(extractTitle(xml) || d.name); setVersionStack([]);
                             setMessages([{ role: "assistant", content: `Loaded: ${d.name}\nYou can now ask me to modify this diagram.` }]);
                           }
                         }}
@@ -325,19 +364,20 @@ export default function App() {
             position: "absolute", bottom: 20, right: 20, width: 400,
             height: "min(600px, calc(100% - 40px))",
             borderRadius: 14, background: C.surface, border: `1px solid ${C.border}`,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column",
+            boxShadow: "0 12px 48px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08)",
+            display: "flex", flexDirection: "column",
             zIndex: 30, overflow: "hidden",
           }}>
             {/* Chat header */}
             <div style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "10px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+              padding: "12px 16px", background: C.primary, flexShrink: 0,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Bot size={16} color={C.primary} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Blueprint AI</span>
+                <Bot size={16} color="#fff" />
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>Blueprint AI</span>
               </div>
-              <button onClick={() => setChatOpen(false)} style={{ ...btnIcon, width: 28, height: 28 }} title="Minimize chat">
+              <button onClick={() => setChatOpen(false)} style={{ ...btnIcon, width: 28, height: 28, color: "rgba(255,255,255,0.7)" }} title="Minimize chat">
                 <ChevronRight size={16} style={{ transform: "rotate(90deg)" }} />
               </button>
             </div>
