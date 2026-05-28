@@ -80,7 +80,7 @@ def _find_anchor(nid: str, spec: DiagramSpec, prior: dict[str, list[float]]) -> 
 def _compute_cluster_bounds(spec: DiagramSpec, positions: dict[str, tuple[float, float]],
                             ) -> dict[str, tuple[float, float, float, float]]:
     """Compute cluster bounding boxes from node positions."""
-    PAD = 40
+    PAD = 55
     bounds: dict[str, tuple[float, float, float, float]] = {}
     for cid, cluster in spec.clusters.items():
         child_positions = []
@@ -106,8 +106,8 @@ def _dot_layout(spec: DiagramSpec, direction: str) -> LayoutResult:
     g = graphviz.Digraph(engine="dot", format="json")
 
     n = len(spec.nodes)
-    nodesep = "1.8" if n > 12 else "1.5" if n > 6 else "1.2"
-    ranksep = "2.2" if n > 12 else "1.8" if n > 6 else "1.5"
+    nodesep = "3.2" if n > 12 else "2.8" if n > 6 else "2.5"
+    ranksep = "3.8" if n > 12 else "3.5" if n > 6 else "3.0"
 
     g.attr(
         rankdir=direction,
@@ -151,6 +151,35 @@ def _dot_layout(spec: DiagramSpec, direction: str) -> LayoutResult:
             g.node(nid, label=node.label,
                    width=str(NODE_W / 72), height=str(NODE_H / 72),
                    shape="box", fixedsize="true")
+
+    # Source/sink rank pinning: pin nodes with no incoming edges to min rank,
+    # nodes with no outgoing edges to max rank
+    sources = set(spec.nodes.keys())
+    sinks = set(spec.nodes.keys())
+    for edge in spec.edges.values():
+        sinks.discard(edge.source)
+        sources.discard(edge.target)
+
+    if sources:
+        with g.subgraph() as s:
+            s.attr(rank="min")
+            for nid in sources:
+                s.node(nid)
+
+    if sinks:
+        with g.subgraph() as s:
+            s.attr(rank="max")
+            for nid in sinks:
+                s.node(nid)
+
+    # Auxiliary node rank constraints: push monitoring/error nodes to sink rank
+    auxiliary_nodes = [nid for nid, node in spec.nodes.items()
+                       if getattr(node, "role", None) == "auxiliary"]
+    if auxiliary_nodes:
+        with g.subgraph() as s:
+            s.attr(rank="max")
+            for nid in auxiliary_nodes:
+                s.node(nid)
 
     for eid, edge in spec.edges.items():
         attrs: dict[str, str] = {}

@@ -12,6 +12,11 @@ _CLUSTER_STYLES = {
     "vpc": "shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc2;strokeColor=#8C4FFF;fillColor=none;fontColor=#AAB7B8;dashed=0;",
     "public_subnet": "shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#7AA116;fillColor=#F2F6E8;fontColor=#248814;dashed=0;",
     "private_subnet": "shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;strokeColor=#00A4A6;fillColor=#E6F6F7;fontColor=#147EBA;dashed=0;",
+    "availability_zone": "shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_availability_zone;strokeColor=#007FAA;fillColor=none;fontColor=#007FAA;dashed=1;",
+    "security_group": "shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;strokeColor=#DD344C;fillColor=none;fontColor=#DD344C;dashed=0;",
+    "account": "shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_account;strokeColor=#CD2264;fillColor=none;fontColor=#CD2264;dashed=0;",
+    "elastic_beanstalk": "shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_elastic_beanstalk;strokeColor=#D86613;fillColor=none;fontColor=#D86613;dashed=0;",
+    "ec2_instance": "shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_ec2_instance_contents;strokeColor=#D86613;fillColor=none;fontColor=#D86613;dashed=0;",
     "generic": "rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;",
 }
 
@@ -46,7 +51,7 @@ def _edge_ports(src_pos: tuple[float, float], tgt_pos: tuple[float, float], nw: 
 
 def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
     cells: list[str] = []
-    cell_id = 2
+    cell_id = 3  # 0=root, 1=layer, 2=background rect
 
     cluster_cell_ids: dict[str, int] = {}
     child_to_parent: dict[str, str] = {}
@@ -133,12 +138,26 @@ def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
 
     cells_xml = "\n".join(cells)
 
+    # Dynamic canvas size based on layout
+    page_w = max(1920, int(layout.graph_width + 200))
+    page_h = max(1400, int(layout.graph_height + 200))
+
+    # Background rectangle for PNG export (prevents black background)
+    bg_cell = (
+        f'        <mxCell id="2" value="" '
+        f'style="rounded=1;whiteSpace=wrap;fillColor=#F5F5F5;strokeColor=#E0E0E0;arcSize=2;" '
+        f'vertex="1" parent="1">\n'
+        f'          <mxGeometry width="{page_w}" height="{page_h}" as="geometry" />\n'
+        f'        </mxCell>'
+    )
+
     return f'''<mxfile host="diagram-agent" modified="" agent="diagram-agent" version="1">
   <diagram id="page-1" name="{escape(spec.title)}">
-    <mxGraphModel dx="0" dy="0" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1400" math="0" shadow="0">
+    <mxGraphModel dx="0" dy="0" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="{page_w}" pageHeight="{page_h}" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+{bg_cell}
 {cells_xml}
       </root>
     </mxGraphModel>

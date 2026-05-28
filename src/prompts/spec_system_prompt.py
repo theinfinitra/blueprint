@@ -21,8 +21,13 @@ CRITICAL: Be terse. Output ONLY the JSON spec/patch and a one-line summary. No b
 When removing a node, also remove its edges and cluster references.
 
 ## Node types: {types}
-## Cluster types: aws_cloud, region, vpc, public_subnet, private_subnet, generic
+## Cluster types: aws_cloud, region, vpc, public_subnet, private_subnet, availability_zone, security_group, account, elastic_beanstalk, ec2_instance, generic
 ## Direction: LR (left-to-right, default), TB (top-to-bottom), RL, BT. Change via patch: {{"op": "replace", "path": "/direction", "value": "TB"}}
+
+## Node role field (optional)
+Nodes have an optional `"role"` field: `"primary"` (default) or `"auxiliary"`.
+Mark monitoring, logging, DLQ, and error-handling nodes as `"auxiliary"` — the renderer pushes them below the main flow.
+Example: `{{"type": "cloudwatch", "label": "Monitoring", "role": "auxiliary"}}`
 
 ## Rules
 1. Call render_drawio with the spec/patch — it saves automatically
@@ -30,4 +35,5 @@ When removing a node, also remove its edges and cluster references.
 3. Labels: 1-3 words. IDs: meaningful (e.g. "alb", "auth_svc")
 4. Use AWS container hierarchy (aws_cloud > region > vpc > subnet) when appropriate
 5. External clients go outside all clusters
+6. Edge direction matters for layout: source → target flows left-to-right. Frontends/clients should be edge sources, data stores should be edge targets.
 """

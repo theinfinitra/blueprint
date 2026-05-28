@@ -34,6 +34,17 @@ _AI = "#01A88D"
 _GENERAL = "#232F3E"
 _DEV = "#C7131F"
 
+# ── Broken icons blocklist ────────────────────────────────────────────────────
+# These resIcon values silently render as empty squares in draw.io.
+# Map them to working alternatives.
+_BROKEN_ICONS: dict[str, str] = {
+    "dynamodb_table": "dynamodb",
+    "dynamodb_stream": "dynamodb",
+    "general_saml_token": "traditional_server",
+    "kinesis_data_streams": "kinesis",
+    "endpoint": "endpoints",
+}
+
 # ── Icon catalog ──────────────────────────────────────────────────────────────
 # Key = short type name the LLM uses in the JSON spec
 # Value = IconDef with full draw.io style
@@ -121,7 +132,7 @@ ICONS: dict[str, IconDef] = {
     "athena":       IconDef(_resource("athena", _NETWORK), "analytics"),
     "glue":         IconDef(_resource("glue", _NETWORK), "analytics"),
     "emr":          IconDef(_resource("emr", _NETWORK), "analytics"),
-    "opensearch":   IconDef(_resource("opensearch_service", _NETWORK), "analytics"),
+    "opensearch":   IconDef(_resource("elasticsearch_service", _NETWORK), "analytics"),
     "quicksight":   IconDef(_resource("quicksight", _NETWORK), "analytics"),
     "msk":          IconDef(_resource("managed_streaming_for_kafka", _NETWORK), "analytics"),
     "lake_formation": IconDef(_resource("lake_formation", _NETWORK), "analytics"),
@@ -229,6 +240,45 @@ ICONS: dict[str, IconDef] = {
     "internet":     IconDef(_resource("internet_alt2", _GENERAL), "general"),
     "server":       IconDef(_resource("traditional_server", _GENERAL), "general"),
     "mobile":       IconDef(_resource("mobile_client", _GENERAL), "general"),
+
+    # Networking (resource-level standalone additions)
+    "internet_gateway": IconDef(_standalone("internet_gateway", _NETWORK), "network"),
+    "vpn_gateway":  IconDef(_standalone("vpn_gateway", _NETWORK), "network"),
+    "customer_gateway": IconDef(_standalone("customer_gateway", _NETWORK), "network"),
+    "classic_load_balancer": IconDef(_standalone("classic_load_balancer", _NETWORK), "network"),
+    "cloudfront_functions": IconDef(_standalone("cloudfront_functions", _NETWORK), "network"),
+    "route_53_hosted_zone": IconDef(_standalone("route_53_hosted_zone", _NETWORK), "network"),
+    "route_53_resolver": IconDef(_standalone("route_53_resolver", _NETWORK), "network"),
+    "elastic_ip":   IconDef(_standalone("elastic_ip_address", _NETWORK), "network"),
+    "network_acl":  IconDef(_standalone("network_access_control_list", _NETWORK), "network"),
+    "flow_logs":    IconDef(_standalone("flow_logs", _NETWORK), "network"),
+    "vpc_peering":  IconDef(_standalone("peering", _NETWORK), "network"),
+    "vpc_lattice":  IconDef(_resource("vpc_lattice", _NETWORK), "network"),
+    "cloud_wan":    IconDef(_resource("cloud_wan", _NETWORK), "network"),
+    "app_mesh":     IconDef(_resource("app_mesh", _NETWORK), "network"),
+    "vpn_connection": IconDef(_standalone("vpn_connection", _NETWORK), "network"),
+    "transit_gateway_attachment": IconDef(_standalone("transit_gateway_attachment", _NETWORK), "network"),
+    "edge_location": IconDef(_standalone("edge_location", _NETWORK), "network"),
+
+    # Storage (resource-level additions)
+    "s3_glacier_deep_archive": IconDef(_resource("s3_glacier_deep_archive", _STORAGE), "storage"),
+
+    # Security (resource-level additions)
+    "identity_center": IconDef(_resource("single_sign_on", _SECURITY), "security"),
+
+    # Analytics (additions)
+    "data_firehose": IconDef(_resource("kinesis_firehose", _NETWORK), "analytics"),
+    "redshift_serverless": IconDef(_resource("redshift", _DATABASE), "analytics"),
+
+    # Compute (resource-level additions)
+    "auto_scaling": IconDef(_standalone("auto_scaling2", _COMPUTE), "compute"),
+    "ec2_instance": IconDef(_standalone("instance", _COMPUTE), "compute"),
+    "ec2_ami":      IconDef(_standalone("ami", _COMPUTE), "compute"),
+
+    # General (additions)
+    "user":         IconDef(_standalone("user", _GENERAL), "general"),
+    "office_building": IconDef(_standalone("office_building", _GENERAL), "general"),
+    "sdk":          IconDef(_standalone("sdk", _GENERAL), "general"),
 }
 
 # ── Category color guessing for fallback ──────────────────────────────────────
@@ -261,6 +311,11 @@ def get_icon_style(node_type: str) -> str:
     icon = ICONS.get(node_type)
     if icon:
         return icon.style
+    # Check blocklist — if the type matches a known-broken stencil, use the alternative
+    if node_type in _BROKEN_ICONS:
+        alt = ICONS.get(_BROKEN_ICONS[node_type])
+        if alt:
+            return alt.style
     # Fallback: try the name as a mxgraph.aws4 resource icon with guessed color
     color = _guess_color(node_type)
     return _resource(node_type, color)

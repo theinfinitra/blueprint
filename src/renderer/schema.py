@@ -5,16 +5,20 @@ from dataclasses import dataclass, field
 import json
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-VALID_CLUSTER_TYPES = {"aws_cloud", "region", "vpc", "public_subnet", "private_subnet", "generic"}
+VALID_CLUSTER_TYPES = {"aws_cloud", "region", "vpc", "public_subnet", "private_subnet", "availability_zone", "security_group", "account", "elastic_beanstalk", "ec2_instance", "generic"}
 VALID_EDGE_STYLES = {"solid", "dashed"}
 MAX_LABEL_LENGTH = 25
 VALID_DIRECTIONS = {"LR", "TB", "RL", "BT"}
+
+
+VALID_ROLES = {"primary", "auxiliary"}
 
 
 @dataclass
 class Node:
     type: str
     label: str
+    role: str = "primary"  # "primary" or "auxiliary" (monitoring, DLQ, error handlers)
 
 @dataclass
 class Edge:
@@ -94,6 +98,8 @@ def normalize_spec(spec: DiagramSpec) -> DiagramSpec:
     # Normalize node types to lowercase with underscores
     for node in spec.nodes.values():
         node.type = node.type.lower().replace("-", "_").replace(" ", "_")
+        if node.role not in VALID_ROLES:
+            node.role = "primary"
 
     return spec
 

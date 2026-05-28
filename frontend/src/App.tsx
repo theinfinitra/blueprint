@@ -144,7 +144,7 @@ export default function App() {
 
   const send = async (prompt?: string) => {
     const msg = prompt || input.trim();
-    if (!msg || loading) return;
+    if ((!msg && !attachedFile) || loading) return;
     const token = getToken();
     if (!token) { login(); return; }
 
@@ -592,12 +592,38 @@ function extractExplanation(content: string): string {
 function getSmartActions(xml: string): string[] {
   const lower = xml.toLowerCase();
   const actions: string[] = [];
-  if (!lower.includes("cloudwatch")) actions.push("Add CloudWatch monitoring");
-  if (!lower.includes("waf")) actions.push("Add WAF security layer");
-  if (!lower.includes("cloudfront")) actions.push("Add CloudFront CDN");
-  if (!lower.includes("cognito")) actions.push("Add Cognito authentication");
-  if (!lower.includes("codepipeline") && !lower.includes("ci")) actions.push("Add CI/CD pipeline");
-  if (!lower.includes("elasticache") && !lower.includes("redis")) actions.push("Add ElastiCache caching");
+  const isIoT = lower.includes("iot") || lower.includes("greengrass") || lower.includes("sensor");
+  const isML = lower.includes("bedrock") || lower.includes("sagemaker") || lower.includes("ml");
+  const isServerless = lower.includes("lambda") && (lower.includes("dynamodb") || lower.includes("api_gateway") || lower.includes("api gateway"));
+  const isWebApp = lower.includes("alb") || lower.includes("ecs") || lower.includes("ec2") || lower.includes("fargate");
+  const isDataPipeline = lower.includes("kinesis") || lower.includes("glue") || lower.includes("athena") || lower.includes("firehose");
+  if (isIoT) {
+    if (!lower.includes("kinesis")) actions.push("Add Kinesis for stream ingestion");
+    if (!lower.includes("timestream") && !lower.includes("dynamodb")) actions.push("Add Timestream for time-series data");
+    if (!lower.includes("lambda")) actions.push("Add Lambda for event processing");
+  } else if (isDataPipeline) {
+    if (!lower.includes("s3")) actions.push("Add S3 data lake");
+    if (!lower.includes("redshift") && !lower.includes("athena")) actions.push("Add Athena for querying");
+    if (!lower.includes("quicksight")) actions.push("Add QuickSight dashboards");
+  } else if (isML) {
+    if (!lower.includes("s3")) actions.push("Add S3 for model artifacts");
+    if (!lower.includes("lambda") && !lower.includes("api_gateway")) actions.push("Add API Gateway + Lambda for inference endpoint");
+    if (!lower.includes("cloudwatch")) actions.push("Add CloudWatch for model monitoring");
+  } else if (isServerless) {
+    if (!lower.includes("cognito")) actions.push("Add Cognito authentication");
+    if (!lower.includes("cloudfront")) actions.push("Add CloudFront CDN");
+    if (!lower.includes("sqs")) actions.push("Add SQS for async processing");
+    if (!lower.includes("cloudwatch")) actions.push("Add CloudWatch monitoring");
+  } else if (isWebApp) {
+    if (!lower.includes("cloudfront")) actions.push("Add CloudFront CDN");
+    if (!lower.includes("waf")) actions.push("Add WAF security layer");
+    if (!lower.includes("elasticache") && !lower.includes("redis")) actions.push("Add ElastiCache caching");
+    if (!lower.includes("cloudwatch")) actions.push("Add CloudWatch monitoring");
+  } else {
+    if (!lower.includes("cloudwatch")) actions.push("Add CloudWatch monitoring");
+    if (!lower.includes("iam")) actions.push("Add IAM roles & policies");
+    if (!lower.includes("cloudtrail")) actions.push("Add CloudTrail audit logging");
+  }
   actions.push("Switch to top-down layout");
   return actions.slice(0, 3);
 }
