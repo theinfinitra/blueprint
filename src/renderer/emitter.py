@@ -20,11 +20,12 @@ _CLUSTER_STYLES = {
     "generic": "rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;",
 }
 
-_CLUSTER_COMMON = "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=14;fontStyle=1;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;strokeWidth=3;verticalAlign=top;align=left;spacingLeft=30;fontFamily=Inter;"
+_CLUSTER_COMMON = "points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=14;fontStyle=1;container=1;dropTarget=1;pointerEvents=0;collapsible=0;recursiveResize=0;strokeWidth=3;verticalAlign=top;align=left;spacingLeft=30;fontFamily=Inter;"
 
 _EDGE_BASE = "edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=3;jettySize=auto;orthogonalLoop=1;"
 _EDGE_SOLID_COLOR = "strokeColor=#0066CC;"
 _EDGE_DASHED_COLOR = "strokeColor=#999999;dashed=1;"
+_EDGE_ERROR_COLOR = "strokeColor=#DD344C;dashed=1;"
 
 
 def _edge_ports(src_pos: tuple[float, float], tgt_pos: tuple[float, float], nw: float, nh: float) -> str:
@@ -117,7 +118,7 @@ def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
         if not src_cell or not tgt_cell:
             continue
 
-        color = _EDGE_DASHED_COLOR if edge.style == "dashed" else _EDGE_SOLID_COLOR
+        color = _EDGE_ERROR_COLOR if edge.style == "error" else _EDGE_DASHED_COLOR if edge.style == "dashed" else _EDGE_SOLID_COLOR
 
         # Compute smart exit/entry ports from absolute positions
         src_pos = layout.positions.get(edge.source, (0, 0))
@@ -126,10 +127,11 @@ def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
 
         style = _EDGE_BASE + color + ports
         label = escape(edge.label) if edge.label else ""
+        label_style = "labelBackgroundColor=#F5F5F5;fontSize=12;" if label else ""
 
         cells.append(
             f'      <mxCell id="{cell_id}" value="{label}" '
-            f'style="{style}" edge="1" parent="1" '
+            f'style="{style}{label_style}" edge="1" parent="1" '
             f'source="{src_cell}" target="{tgt_cell}">\n'
             f'        <mxGeometry relative="1" as="geometry" />\n'
             f'      </mxCell>'
@@ -145,7 +147,7 @@ def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
     # Background rectangle for PNG export (prevents black background)
     bg_cell = (
         f'        <mxCell id="2" value="" '
-        f'style="rounded=1;whiteSpace=wrap;fillColor=#F5F5F5;strokeColor=#E0E0E0;arcSize=2;" '
+        f'style="rounded=1;whiteSpace=wrap;fillColor=#F5F5F5;strokeColor=none;arcSize=2;" '
         f'vertex="1" parent="1">\n'
         f'          <mxGeometry width="{page_w}" height="{page_h}" as="geometry" />\n'
         f'        </mxCell>'

@@ -22,6 +22,7 @@ When removing a node, also remove its edges and cluster references.
 
 ## Node types: {types}
 ## Cluster types: aws_cloud, region, vpc, public_subnet, private_subnet, availability_zone, security_group, account, elastic_beanstalk, ec2_instance, generic
+## Edge styles: solid (default), dashed (async/optional), error (red dashed — for DLQ, error paths)
 ## Direction: LR (left-to-right, default), TB (top-to-bottom), RL, BT. Change via patch: {{"op": "replace", "path": "/direction", "value": "TB"}}
 
 ## Node role field (optional)

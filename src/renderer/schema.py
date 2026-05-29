@@ -6,7 +6,7 @@ import json
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 VALID_CLUSTER_TYPES = {"aws_cloud", "region", "vpc", "public_subnet", "private_subnet", "availability_zone", "security_group", "account", "elastic_beanstalk", "ec2_instance", "generic"}
-VALID_EDGE_STYLES = {"solid", "dashed"}
+VALID_EDGE_STYLES = {"solid", "dashed", "error"}
 MAX_LABEL_LENGTH = 25
 VALID_DIRECTIONS = {"LR", "TB", "RL", "BT"}
 

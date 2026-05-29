@@ -307,7 +307,7 @@ def _guess_color(node_type: str) -> str:
 
 
 def get_icon_style(node_type: str) -> str:
-    """Get draw.io style string for a node type. Falls back with smart color guessing."""
+    """Get draw.io style string for a node type. Falls back to generic AWS cloud icon."""
     icon = ICONS.get(node_type)
     if icon:
         return icon.style
@@ -316,9 +316,9 @@ def get_icon_style(node_type: str) -> str:
         alt = ICONS.get(_BROKEN_ICONS[node_type])
         if alt:
             return alt.style
-    # Fallback: try the name as a mxgraph.aws4 resource icon with guessed color
+    # Fallback: generic AWS cloud icon (safe — always renders)
     color = _guess_color(node_type)
-    return _resource(node_type, color)
+    return _resource("general_AWScloud", color)
 
 
 def list_types() -> list[str]:
