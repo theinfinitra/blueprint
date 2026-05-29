@@ -28,8 +28,9 @@ export const C = {
 
 // ── Typography ───────────────────────────────────────────────────────────────
 export const FONT = {
-  mono: "'JetBrains Mono', monospace",
+  mono: "'JetBrains Mono', 'Consolas', monospace",
   sans: "'Inter', system-ui, sans-serif",
+  handwritten: "'Caveat', cursive",
 };
 
 // ── Button styles ────────────────────────────────────────────────────────────

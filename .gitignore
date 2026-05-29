@@ -17,6 +17,7 @@ frontend/src/*.js
 frontend/.env
 infra/config/stg.env
 infra/config/prd.env
+infra/config/public-prd.env
 *.env.local
 *.env.*.local
 

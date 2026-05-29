@@ -217,18 +217,130 @@ export default function App() {
   const groupedDiagrams = groupByDate(savedDiagrams);
 
   // ── Login screen ─────────────────────────────────────────────────────────
+  // ── Landing page (unauthenticated) ──────────────────────────────────────
   if (!authed) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: C.bg }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ color: "#fff", fontSize: 20, fontWeight: 700, fontFamily: FONT.sans }}>B</span>
+      <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FONT.sans }}>
+        {/* Grid background (matches diagram area) */}
+        <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, backgroundImage: "radial-gradient(circle, rgb(208, 213, 221) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+
+        {/* Nav */}
+        <nav style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ color: "#fff", fontSize: 18, fontWeight: 700, fontFamily: FONT.mono }}>B</span>
+            </div>
+            <span style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: FONT.mono }}>Blueprint</span>
           </div>
-          <span style={{ fontSize: 26, fontWeight: 700, color: C.text }}>Blueprint</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <a href="https://github.com/theinfinitra/blueprint" target="_blank" rel="noopener" style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, textDecoration: "none", color: C.text, fontSize: 12, fontFamily: FONT.mono }} title="Star on GitHub">
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              <span>Star</span>
+              <svg width={10} height={10} viewBox="0 0 24 24" fill="#F59E0B"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </a>
+            <button onClick={login} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 13, display: "flex", alignItems: "center" }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 8 }}><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              Sign in
+            </button>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto", padding: "60px 32px 24px", textAlign: "center" }}>
+          <h1 style={{ fontSize: 44, fontWeight: 800, color: C.text, lineHeight: 1.2, marginBottom: 16, fontFamily: FONT.mono }}>
+            AWS architecture diagrams<br />from a conversation
+          </h1>
+          <p style={{ fontSize: 18, color: C.textSecondary, maxWidth: 600, margin: "0 auto 32px", lineHeight: 1.6 }}>
+            Describe your architecture in plain English. Get an editable .drawio file with proper AWS icons in seconds. <span style={{ fontFamily: FONT.handwritten, fontSize: 22 }}>Refine through chat.</span>
+          </p>
+          <button onClick={login} style={{ ...btnPrimary, padding: "14px 40px", fontSize: 16, borderRadius: 10, display: "inline-flex", alignItems: "center" }}>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 8 }}><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            Get started — it's free
+          </button>
+          <p style={{ fontSize: 13, color: C.textMuted, marginTop: 12, fontFamily: FONT.mono }}>5 diagrams/month free • No credit card required</p>
         </div>
-        <p style={{ color: C.textSecondary, fontSize: 14, marginBottom: 6 }}>AI-powered AWS architecture diagrams</p>
-        <p style={{ color: C.textMuted, fontSize: 12, marginBottom: 32, fontFamily: FONT.mono }}>describe → generate → iterate → export .drawio</p>
-        <button onClick={login} style={{ ...btnPrimary, padding: "10px 32px", fontSize: 14 }}>Sign in with SSO</button>
+
+        {/* Stats strip */}
+        <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center", gap: 32, padding: "24px 32px", maxWidth: 700, margin: "0 auto" }}>
+          {[
+            { value: "178", label: "AWS services" },
+            { value: "~5s", label: "edit speed" },
+            { value: "100%", label: "editable .drawio" },
+          ].map(({ value, label }) => (
+            <div key={label} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: C.primary, fontFamily: FONT.mono }}>{value}</div>
+              <div style={{ fontSize: 12, color: C.textMuted }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Before/After */}
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 950, margin: "0 auto", padding: "24px 32px 60px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1.6fr", gap: 20, alignItems: "center" }}>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
+              <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 8, fontFamily: FONT.mono }}>YOUR PROMPT</div>
+              <p style={{ fontSize: 15, color: C.text, fontFamily: FONT.mono, lineHeight: 1.6 }}>
+                "3-tier web app with CloudFront, ALB, ECS Fargate, RDS PostgreSQL, and ElastiCache"
+              </p>
+            </div>
+            <div style={{ fontSize: 28, color: C.textMuted }}>→</div>
+            <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
+              <img src="/screenshot.png" alt="Generated diagram" style={{ width: "100%", display: "block" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* How it works */}
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto", padding: "40px 32px 60px" }}>
+          <h2 style={{ fontSize: 28, fontWeight: 700, color: C.text, textAlign: "center", marginBottom: 40, fontFamily: FONT.mono }}>How it works</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32 }}>
+            {[
+              { step: "1", title: "Describe", desc: "Tell Blueprint what you want in plain English. \"3-tier web app with ALB, ECS, and RDS.\"" },
+              { step: "2", title: "Generate", desc: "AI creates a JSON spec. A deterministic renderer produces pixel-perfect draw.io XML with AWS icons." },
+              { step: "3", title: "Iterate", desc: "\"Add CloudFront in front of the ALB.\" Edits take ~5 seconds via JSON patches — no regeneration." },
+            ].map(({ step, title, desc }) => (
+              <div key={step} style={{ textAlign: "center" }}>
+                <div style={{ width: 40, height: 40, borderRadius: 20, background: C.primary, color: "#fff", fontSize: 18, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12, fontFamily: FONT.mono }}>{step}</div>
+                <h3 style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 8, fontFamily: FONT.mono }}>{title}</h3>
+                <p style={{ fontSize: 14, color: C.textSecondary, lineHeight: 1.5 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Features */}
+        <div style={{ position: "relative", zIndex: 1, background: C.surface, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 32px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 24 }}>
+            {[
+              { title: "Editable .drawio output", desc: "Open in draw.io, export to PNG/SVG/PDF. Full control over your diagrams." },
+              { title: "178 AWS service icons", desc: "Official AWS Architecture Icons. Lambda, ECS, RDS, DynamoDB, CloudFront, and more." },
+              { title: "Fast iterations", desc: "Edits via JSON patch in ~5s. No waiting for full regeneration." },
+              { title: "Deterministic rendering", desc: "Style guide enforced in code. Consistent icons, fonts, and layout every time." },
+            ].map(({ title, desc }) => (
+              <div key={title} style={{ padding: 20 }}>
+                <h4 style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6, fontFamily: FONT.mono }}>{title}</h4>
+                <p style={{ fontSize: 13, color: C.textSecondary, lineHeight: 1.5 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto", padding: "60px 32px", textAlign: "center" }}>
+          <h2 style={{ fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 16, fontFamily: FONT.mono }}>Start diagramming in seconds</h2>
+          <button onClick={login} style={{ ...btnPrimary, padding: "14px 40px", fontSize: 16, borderRadius: 10, display: "inline-flex", alignItems: "center" }}>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 8 }}><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            Sign in with LinkedIn
+          </button>
+        </div>
+
+        {/* Footer */}
+        <footer style={{ position: "relative", zIndex: 1, padding: "24px 32px", textAlign: "center", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "center", gap: 16, alignItems: "center" }}>
+          <p style={{ fontSize: 12, color: C.textMuted }}>© 2026 Blueprint</p>
+          <a href="https://github.com/theinfinitra/blueprint" target="_blank" rel="noopener" style={{ color: C.textMuted, display: "flex" }} title="GitHub">
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          </a>
+        </footer>
       </div>
     );
   }
@@ -239,10 +351,12 @@ export default function App() {
       {/* Header */}
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 16px", height: 48, borderBottom: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, fontFamily: FONT.sans }}>B</span>
-          </div>
-          <span style={{ fontSize: 16, fontWeight: 600, color: C.text }}>Blueprint</span>
+          <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: C.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, fontFamily: FONT.mono }}>B</span>
+            </div>
+            <span style={{ fontSize: 16, fontWeight: 600, color: C.text, fontFamily: FONT.mono }}>Blueprint</span>
+          </a>
           {diagramTitle && (
             <>
               <div style={{ width: 1, height: 18, background: C.border }} />
@@ -449,12 +563,19 @@ export default function App() {
                 </div>
               )}
               {!loading && diagramXml && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
-                  {getSmartActions(diagramXml || "").map((action) => (
-                    <button key={action} onClick={() => send(action)} style={btnQuickAction}>
-                      <ChevronRight size={10} />{action}
-                    </button>
-                  ))}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                    <span style={{ fontSize: 11, color: C.textMuted }}>How was this?</span>
+                    <button onClick={() => setMessages((m) => [...m, { role: "assistant", content: "Thanks for the feedback! 🎉" }])} style={{ ...btnIcon, width: 24, height: 24 }} title="Good">👍</button>
+                    <button onClick={() => { const title = encodeURIComponent(`Feedback: ${diagramTitle || "diagram"}`); const body = encodeURIComponent("## What went wrong?\n\n\n## What did you expect?\n\n"); window.open(`https://github.com/theinfinitra/blueprint/issues/new?title=${title}&body=${body}`, "_blank"); }} style={{ ...btnIcon, width: 24, height: 24 }} title="Report issue">👎</button>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {getSmartActions(diagramXml || "").map((action) => (
+                      <button key={action} onClick={() => send(action)} style={btnQuickAction}>
+                        <ChevronRight size={10} />{action}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               <div ref={bottomRef} />

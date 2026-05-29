@@ -18,9 +18,53 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 BUCKET = os.environ.get("S3_BUCKET", "blueprint-diagrams")
+USAGE_TABLE = os.environ.get("USAGE_TABLE", "")
+INTERNAL_POOL_ID = os.environ.get("INTERNAL_POOL_ID", "")
+FREE_TIER_LIMIT = 5
 
 s3 = boto3.client("s3", region_name=REGION)
 lam = boto3.client("lambda", region_name=REGION)
+dynamo = boto3.resource("dynamodb", region_name=REGION) if USAGE_TABLE else None
+
+
+def _get_user_id(event: dict) -> str:
+    """Extract user sub from JWT claims."""
+    claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
+    return claims.get("sub", "anonymous")
+
+
+def _is_internal_user(event: dict) -> bool:
+    """Check if request comes from internal Cognito pool."""
+    claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
+    issuer = claims.get("iss", "")
+    return INTERNAL_POOL_ID and INTERNAL_POOL_ID in issuer
+
+
+def _check_usage(user_id: str) -> tuple[int, bool]:
+    """Returns (current_count, allowed). Internal users always allowed."""
+    if not USAGE_TABLE or not dynamo:
+        return 0, True
+    from datetime import datetime, timezone
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    table = dynamo.Table(USAGE_TABLE)
+    item = table.get_item(Key={"userId": user_id, "month": month}).get("Item")
+    count = int(item["count"]) if item else 0
+    return count, count < FREE_TIER_LIMIT
+
+
+def _increment_usage(user_id: str):
+    """Increment monthly diagram count."""
+    if not USAGE_TABLE or not dynamo:
+        return
+    from datetime import datetime, timezone
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    table = dynamo.Table(USAGE_TABLE)
+    table.update_item(
+        Key={"userId": user_id, "month": month},
+        UpdateExpression="SET #c = if_not_exists(#c, :zero) + :one",
+        ExpressionAttributeNames={"#c": "count"},
+        ExpressionAttributeValues={":zero": 0, ":one": 1},
+    )
 
 def _extract_positions(xml: str, spec: dict) -> dict[str, list[float]]:
     """Extract node positions from draw.io XML by matching cell labels to spec node IDs."""
@@ -108,6 +152,7 @@ def handler(event, context):
         job_id = event["_async_job"]
         prompt = event["prompt"]
         diagram_key = event.get("diagram_key")
+        user_id = event.get("_user_id", "anonymous")
 
         from datetime import datetime, timezone
         job_start = datetime.now(timezone.utc)
@@ -117,8 +162,9 @@ def handler(event, context):
 
             # If editing an existing diagram, load its spec first
             if diagram_key:
-                from src.tools.render_drawio import set_current_spec, set_current_diagram_key
+                from src.tools.render_drawio import set_current_spec, set_current_diagram_key, set_current_user_id
                 set_current_diagram_key(diagram_key)
+                set_current_user_id(user_id)
                 spec_key = diagram_key.replace(".drawio", ".spec.json")
                 try:
                     obj = s3.get_object(Bucket=BUCKET, Key=spec_key)
@@ -127,6 +173,9 @@ def handler(event, context):
                     prompt = f"The current diagram spec is:\n```json\n{json.dumps(spec, indent=2)}\n```\n\nUser request: {prompt}"
                 except Exception:
                     pass  # No spec found — agent will generate fresh
+            else:
+                from src.tools.render_drawio import set_current_user_id
+                set_current_user_id(user_id)
 
             result = str(agent(prompt))
 
@@ -135,8 +184,9 @@ def handler(event, context):
             diagram_url = None
             diagram_xml = None
             if not edit_key:
+                user_prefix = f"diagrams/{user_id}/"
                 try:
-                    objs = s3.list_objects_v2(Bucket=BUCKET, Prefix="diagrams/", MaxKeys=100)
+                    objs = s3.list_objects_v2(Bucket=BUCKET, Prefix=user_prefix, MaxKeys=100)
                     for obj in sorted(objs.get("Contents", []), key=lambda x: x["LastModified"], reverse=True):
                         if obj["Key"].endswith(".drawio") and obj["LastModified"].replace(tzinfo=timezone.utc) >= job_start:
                             edit_key = obj["Key"]
@@ -167,6 +217,9 @@ def handler(event, context):
                 }),
                 ContentType="application/json",
             )
+            # Increment usage counter on successful new diagram
+            if event.get("_increment_user"):
+                _increment_usage(event["_increment_user"])
         except Exception as e:
             s3.put_object(
                 Bucket=BUCKET,
@@ -194,6 +247,14 @@ def handler(event, context):
         if not prompt:
             return resp(400, {"error": "prompt is required"})
 
+        # Usage limit check (skip for internal users and edits)
+        user_id = _get_user_id(event)
+        is_edit = bool(body.get("diagram_key"))
+        if not is_edit and not _is_internal_user(event):
+            count, allowed = _check_usage(user_id)
+            if not allowed:
+                return resp(429, {"error": "Monthly limit reached (5 diagrams). Upgrade for unlimited.", "count": count, "limit": FREE_TIER_LIMIT})
+
         job_id = str(uuid.uuid4())
         s3.put_object(
             Bucket=BUCKET,
@@ -202,9 +263,12 @@ def handler(event, context):
             ContentType="application/json",
         )
 
-        payload = {"_async_job": job_id, "prompt": prompt}
+        payload = {"_async_job": job_id, "prompt": prompt, "_user_id": user_id}
         if body.get("diagram_key"):
             payload["diagram_key"] = body["diagram_key"]
+        # Pass user_id for usage increment after success
+        if not is_edit and not _is_internal_user(event):
+            payload["_increment_user"] = user_id
 
         lam.invoke(
             FunctionName=context.function_name,
@@ -227,8 +291,10 @@ def handler(event, context):
 
     # GET /diagrams
     if path == "/diagrams" and method == "GET":
+        user_id = _get_user_id(event)
+        user_prefix = f"diagrams/{user_id}/"
         try:
-            objs = s3.list_objects_v2(Bucket=BUCKET, Prefix="diagrams/", MaxKeys=50)
+            objs = s3.list_objects_v2(Bucket=BUCKET, Prefix=user_prefix, MaxKeys=50)
             items = []
             for obj in sorted(objs.get("Contents", []), key=lambda x: x["LastModified"], reverse=True):
                 key = obj["Key"]
@@ -245,6 +311,9 @@ def handler(event, context):
         key = body.get("key", "")
         if not xml or not key:
             return resp(400, {"error": "xml and key are required"})
+        user_id = _get_user_id(event)
+        if not key.startswith(f"diagrams/{user_id}/"):
+            return resp(403, {"error": "access denied"})
         s3.put_object(Bucket=BUCKET, Key=key, Body=xml.encode("utf-8"), ContentType="application/xml")
 
         # Extract positions from XML and update spec.json
@@ -268,6 +337,9 @@ def handler(event, context):
         key = (event.get("queryStringParameters") or {}).get("key", "")
         if not key:
             return resp(400, {"error": "key is required"})
+        user_id = _get_user_id(event)
+        if not key.startswith(f"diagrams/{user_id}/"):
+            return resp(403, {"error": "access denied"})
         try:
             s3.delete_object(Bucket=BUCKET, Key=key)
             spec_key = key.replace(".drawio", ".spec.json")
@@ -275,6 +347,14 @@ def handler(event, context):
             return resp(200, {"status": "deleted"})
         except Exception as e:
             return resp(500, {"error": str(e)})
+
+    # GET /usage
+    if path == "/usage" and method == "GET":
+        user_id = _get_user_id(event)
+        if _is_internal_user(event):
+            return resp(200, {"count": 0, "limit": -1, "plan": "internal"})
+        count, _ = _check_usage(user_id)
+        return resp(200, {"count": count, "limit": FREE_TIER_LIMIT, "plan": "free"})
 
     return resp(404, {"error": "not found"})
 

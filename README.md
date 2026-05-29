@@ -2,6 +2,8 @@
 
 AI-powered AWS architecture diagram generator. Describe an architecture in natural language, get an editable `.drawio` file with proper AWS icons. Refine through conversation.
 
+**→ Try it free: [blueprint.theinfinitra.com](https://blueprint.theinfinitra.com)**
+
 ```
 You: "3-tier web app with ALB, ECS, RDS PostgreSQL, and ElastiCache"
 Blueprint: [generates diagram in ~10s] → editable .drawio file
@@ -16,6 +18,18 @@ Blueprint: [patches diagram in ~5s] → updated .drawio file
 | :----------------------------------------: | :--------------------------------------: | :----------------------------------------------: |
 | ![Generate](docs/screenshots/generate.png) | ![Loading](docs/screenshots/loading.png) | ![Attachment](docs/screenshots/attachment-1.png) |
 
+## Features
+
+- **Natural language → diagram** — describe what you want, get a `.drawio` file
+- **Conversational edits** — refine via chat, edits take ~5s via JSON patches
+- **178 AWS service icons** — official `mxgraph.aws4` stencil library with verified icon catalog
+- **Deterministic rendering** — style guide enforced in code, not in the prompt
+- **Editable output** — open in draw.io, export to PNG/SVG/PDF
+- **Smart layout** — Graphviz-powered with source/sink rank pinning and auxiliary node placement
+- **Error-safe icons** — broken stencil blocklist with automatic fallbacks
+- **User-scoped storage** — each user's diagrams are isolated
+- **Freemium** — 5 diagrams/month free, unlimited edits
+
 ## How It Works
 
 Blueprint uses a **two-phase architecture** that separates what to draw (LLM) from how to draw it (renderer):
@@ -29,17 +43,16 @@ The LLM never touches draw.io XML. Style guide compliance (icon sizes, fonts, co
 ## Architecture
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│   Frontend   │────▶│  API Gateway  │────▶│     Lambda      │
-│  React SPA   │     │  + JWT Auth   │     │  (Docker/arm64) │
-└─────────────┘     └──────────────┘     └────────┬────────┘
-                                                   │
-                                          ┌────────▼────────┐
-                                          │  Strands Agent   │
-                                          │  Claude Haiku    │
-                                          └────────┬────────┘
-                                                   │
-                              ┌─────────────┬──────┴──────┐
+blueprint.theinfinitra.com ──► CloudFront ──► S3 (React SPA)
+                                                    │
+                                              API Gateway (JWT)
+                                                    │
+                                              Lambda (Docker/arm64)
+                                                    │
+                                              Strands Agent
+                                              (Claude Haiku)
+                                                    │
+                              ┌─────────────┬───────┴──────┐
                               ▼             ▼              ▼
                         ┌──────────┐  ┌──────────┐  ┌──────────┐
                         │  Schema  │  │  Layout   │  │ Emitter  │
@@ -59,37 +72,36 @@ blueprint/
 ├── src/                          # Backend (Python)
 │   ├── agent.py                  # Strands Agent — orchestrates LLM + tools
 │   ├── prompts/
-│   │   └── spec_system_prompt.py # System prompt — teaches LLM the JSON spec format
+│   │   └── spec_system_prompt.py # System prompt — JSON spec format + rules
 │   ├── renderer/
 │   │   ├── schema.py             # JSON spec dataclasses + validation + normalization
-│   │   ├── icons.py              # 80+ AWS service → draw.io mxgraph icon mapping
-│   │   ├── layout.py             # Graphviz layout engine — computes coordinates
-│   │   └── emitter.py            # Assembles draw.io XML from positioned nodes
+│   │   ├── icons.py              # 178 AWS service → draw.io icon mapping + blocklist
+│   │   ├── layout.py             # Graphviz layout with rank pinning + auxiliary nodes
+│   │   └── emitter.py            # draw.io XML with background rect, dynamic canvas, edge labels
 │   └── tools/
 │       ├── render_drawio.py      # @tool: render spec → draw.io XML → save to S3
 │       ├── load_diagram.py       # @tool: load existing diagram + spec from S3
-│       ├── save_diagram.py       # S3 save utility (used by Lambda handler)
 │       └── validate_xml.py       # draw.io XML structural validator
 ├── frontend/                     # Frontend (React + TypeScript)
 │   └── src/
-│       ├── App.tsx               # Main app — sidebar, floating chat, diagram viewer
-│       ├── DiagramSkeleton.tsx   # Loading animation — nodes appear with glow effects
-│       ├── api.ts                # API client — async job polling, CRUD operations
+│       ├── App.tsx               # Landing page, chat UI, diagram viewer
+│       ├── DiagramSkeleton.tsx   # Loading animation
+│       ├── api.ts                # API client — async job polling, CRUD, usage
 │       ├── auth.ts               # Cognito PKCE OAuth2 flow
-│       └── styles.ts             # Design system — colors, fonts, button styles
-├── infra/                        # Infrastructure (CloudFormation + scripts)
+│       └── styles.ts             # Design system — JetBrains Mono + Inter + Caveat
+├── infra/                        # Infrastructure (CloudFormation)
 │   ├── cfn/
-│   │   ├── api.yaml              # IAM, Lambda, API Gateway, Cognito client
+│   │   ├── api.yaml              # Internal API Gateway + Lambda + Cognito client
+│   │   ├── api-public.yaml       # Public API Gateway + DynamoDB usage table
+│   │   ├── cognito-public.yaml   # Public Cognito pool + LinkedIn OIDC IdP
+│   │   ├── frontend-public.yaml  # CloudFront + S3 for blueprint.theinfinitra.com
 │   │   └── ecr.yaml              # ECR repository
-│   ├── config/
-│   │   ├── stg.env.example       # Staging config template
-│   │   └── prd.env.example       # Production config template
 │   ├── lambda/
-│   │   ├── handler.py            # Lambda handler — async job pattern
+│   │   ├── handler.py            # Lambda handler — async jobs, usage tracking, user scoping
 │   │   └── Dockerfile            # Lambda Docker image (Python 3.13 + Graphviz)
-│   ├── storage.yaml              # S3 bucket for diagram storage
-│   ├── deploy.sh                 # Backend deploy: CFN + Docker + Lambda
-│   └── deploy-frontend.sh        # Frontend deploy: build + S3 sync + CloudFront invalidation
+│   ├── deploy.sh                 # Backend deploy
+│   ├── deploy-public.sh          # Full public stack deploy
+│   └── deploy-public-frontend.sh # Frontend-only deploy
 └── tests/
     └── test_validate_xml.py      # XML validator tests
 ```
@@ -100,10 +112,9 @@ blueprint/
 
 - Python 3.13+
 - Node.js 18+
-- [Graphviz](https://graphviz.org/download/) installed (`brew install graphviz` on macOS)
-- AWS account with Bedrock model access (Claude Haiku 4.5)
-- AWS CLI configured with SSO or credentials
-- Cognito User Pool (for authentication)
+- [Graphviz](https://graphviz.org/download/) (`brew install graphviz` on macOS)
+- AWS account with Bedrock model access (Claude Haiku)
+- AWS CLI configured
 
 ### Local Development
 
@@ -132,9 +143,6 @@ with open('test.drawio', 'w') as f: f.write(xml)
 print('Open test.drawio in draw.io')
 "
 
-# Test with LLM (requires AWS credentials + Bedrock access)
-AWS_PROFILE=your-profile python src/agent.py "Serverless API with Lambda and DynamoDB"
-
 # Frontend
 cd frontend
 npm install
@@ -142,39 +150,51 @@ cp .env.example .env  # Edit with your API endpoint + Cognito config
 npm run dev
 ```
 
-### Deploy to AWS
+## Supported AWS Services (178 icons)
 
-```bash
-# 1. Create config
-cp infra/config/stg.env.example infra/config/stg.env
-# Edit stg.env with your Cognito pool ID, domain, frontend URL
-
-# 2. Deploy backend (S3 + ECR + Lambda + API Gateway + Cognito)
-./infra/deploy.sh stg your-aws-profile us-east-1
-
-# 3. Deploy frontend
-./infra/deploy-frontend.sh stg your-aws-profile us-east-1
-```
+| Category | Services |
+|----------|----------|
+| Compute | Lambda, EC2, ECS, EKS, Fargate, Batch, App Runner, Auto Scaling |
+| Networking | CloudFront, Route 53, ALB, NLB, API Gateway, VPC Lattice, Transit Gateway, Internet Gateway, NAT Gateway, VPN Gateway |
+| Database | RDS, Aurora, DynamoDB, ElastiCache, Redshift, Neptune, DocumentDB, Timestream, MemoryDB |
+| Storage | S3, EFS, EBS, FSx, Glacier, Backup, Storage Gateway |
+| Security | IAM, Cognito, KMS, WAF, Shield, GuardDuty, Inspector, Secrets Manager, Identity Center |
+| Integration | SQS, SNS, EventBridge, Step Functions, AppSync, MQ, SES |
+| Analytics | Kinesis, Athena, Glue, EMR, OpenSearch, QuickSight, MSK, Lake Formation |
+| AI/ML | Bedrock, SageMaker, Comprehend, Rekognition, Textract, Polly, Lex, Kendra |
+| Developer | CodePipeline, CodeBuild, CodeDeploy, X-Ray, CodeArtifact |
+| IoT | IoT Core, IoT Greengrass, IoT Analytics, IoT Events |
 
 ## Key Design Decisions
 
 ### Why JSON spec + renderer instead of LLM-generated XML?
 
-| Approach                  | Tokens | Time   | Reliability             |
-| ------------------------- | ------ | ------ | ----------------------- |
-| LLM generates draw.io XML | ~4000  | ~3 min | Fragile (malformed XML) |
-| LLM generates JSON spec   | ~400   | ~10s   | Deterministic renderer  |
-| LLM generates JSON patch  | ~60    | ~5s    | Incremental edits       |
+| Approach | Tokens | Time | Reliability |
+|----------|--------|------|-------------|
+| LLM generates draw.io XML | ~4000 | ~3 min | Fragile (malformed XML) |
+| LLM generates JSON spec | ~400 | ~10s | Deterministic renderer |
+| LLM generates JSON patch | ~60 | ~5s | Incremental edits |
 
-The renderer enforces the style guide in code — icon sizes, fonts, colors, container hierarchy are never LLM-dependent.
+### Icon Safety
 
-### Why Haiku instead of Sonnet?
+- **Broken icons blocklist** — known-broken stencil names (e.g., `dynamodb_table`) are mapped to working alternatives
+- **Safe fallback** — unknown service types render as `general_AWScloud` icon (always visible) instead of guessing stencil names
+- **Legacy name mapping** — renamed services use their old stencil names (e.g., OpenSearch → `elasticsearch_service`)
 
-The JSON spec format is structured enough that Haiku handles it perfectly. Patches are trivial (3-line JSON). Haiku is 3-5x faster for this use case.
+### Layout
 
-### Supported AWS Services
+- Graphviz `dot` engine with adaptive spacing based on node count
+- Source/sink rank pinning (frontends left, data stores right)
+- Auxiliary nodes (monitoring, DLQ) pushed below main flow
+- Dynamic canvas sizing based on graph dimensions
+- PNG export background rectangle (prevents black background)
 
-80+ services mapped to draw.io icons. See [`src/renderer/icons.py`](src/renderer/icons.py) for the full list. Includes: EC2, Lambda, ECS, EKS, Fargate, S3, RDS, DynamoDB, Aurora, ElastiCache, CloudFront, ALB, NLB, API Gateway, Route 53, Cognito, WAF, IAM, KMS, SQS, SNS, EventBridge, Step Functions, CloudWatch, Bedrock, SageMaker, Kinesis, Athena, Glue, and more.
+## Contributing
+
+PRs welcome. Please:
+1. Run `pytest tests/` before submitting
+2. Add icons to `src/renderer/icons.py` (not the prompt)
+3. Test with `python src/agent.py "your test prompt"` if changing the system prompt
 
 ## License
 

@@ -25,6 +25,7 @@ def _get_s3():
 # In-memory state
 _current_spec: dict | None = None
 _current_diagram_key: str | None = None
+_current_user_id: str = "anonymous"
 
 
 def set_current_spec(spec: dict):
@@ -40,6 +41,10 @@ def set_current_diagram_key(key: str | None):
 
 def get_current_diagram_key() -> str | None:
     return _current_diagram_key
+
+def set_current_user_id(uid: str):
+    global _current_user_id
+    _current_user_id = uid
 
 
 @tool
@@ -103,7 +108,7 @@ def render_drawio(spec_json: str, filename: str = "diagram") -> str:
         title = spec_dict.get("title", filename)
         safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in title.lower().strip())
         safe = safe.strip("-") or "diagram"
-        s3_key = f"diagrams/local/{ts}-{safe}.drawio"
+        s3_key = f"diagrams/{_current_user_id}/{ts}-{safe}.drawio"
 
     s3.put_object(Bucket=S3_BUCKET, Key=s3_key, Body=xml.encode("utf-8"), ContentType="application/xml")
 

@@ -1,0 +1,171 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Public API Gateway for Blueprint — shares Lambda with internal stack
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [stg, prd]
+  CognitoUserPoolId:
+    Type: String
+  CognitoClientId:
+    Type: String
+  FrontendUrl:
+    Type: String
+    Default: https://blueprint.theinfinitra.com
+  LambdaFunctionArn:
+    Type: String
+    Description: ARN of the existing diagram-agent Lambda function
+  LambdaRoleArn:
+    Type: String
+    Description: ARN of the existing diagram-agent Lambda IAM role
+
+Resources:
+  UsageTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub blueprint-usage-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: month
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: month
+          KeyType: RANGE
+
+  UsageTablePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub blueprint-usage-dynamo-${Environment}
+      Roles:
+        - !Select [1, !Split ["/", !Ref LambdaRoleArn]]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+            Resource: !GetAtt UsageTable.Arn
+
+  Api:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub blueprint-public-${Environment}
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendUrl
+          - http://localhost:5173
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        MaxAge: 3600
+
+  Authorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref Api
+      AuthorizerType: JWT
+      IdentitySource:
+        - $request.header.Authorization
+      Name: LinkedInAuth
+      JwtConfiguration:
+        Audience:
+          - !Ref CognitoClientId
+        Issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPoolId}
+
+  Integration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref Api
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Ref LambdaFunctionArn
+      PayloadFormatVersion: '2.0'
+
+  RouteGenerate:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: POST /generate
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteResult:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: GET /result
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteDiagramsGet:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: GET /diagrams
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteDiagramsPut:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: PUT /diagrams
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteDiagramsDelete:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: DELETE /diagrams
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  RouteUsage:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: GET /usage
+      Target: !Sub integrations/${Integration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref Api
+      StageName: $default
+      AutoDeploy: true
+
+  InvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunctionArn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*/*
+
+Outputs:
+  ApiEndpoint:
+    Value: !GetAtt Api.ApiEndpoint
+    Export:
+      Name: !Sub blueprint-public-api-${Environment}
+  UsageTableName:
+    Value: !Ref UsageTable

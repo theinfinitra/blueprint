@@ -73,6 +73,8 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: !Sub ${S3Bucket}
+          USAGE_TABLE: !Sub blueprint-usage-${Environment}
+          INTERNAL_POOL_ID: !Ref CognitoUserPoolId
 
   # ── Cognito ──────────────────────────────────────────────────────────────
   CognitoDomain:

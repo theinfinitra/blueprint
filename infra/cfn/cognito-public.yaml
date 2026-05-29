@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Public Cognito User Pool with LinkedIn OIDC for Blueprint
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [stg, prd]
+  LinkedInClientId:
+    Type: String
+    NoEcho: true
+  LinkedInClientSecret:
+    Type: String
+    NoEcho: true
+  CognitoDomainPrefix:
+    Type: String
+    Description: Prefix for Cognito hosted UI domain
+  FrontendUrl:
+    Type: String
+    Description: e.g. https://blueprint.theinfinitra.com
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub blueprint-public-${Environment}
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: given_name
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+        - Name: family_name
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+        - Name: picture
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: false
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref UserPool
+
+  LinkedInIdP:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: LinkedIn
+      ProviderType: OIDC
+      ProviderDetails:
+        client_id: !Ref LinkedInClientId
+        client_secret: !Ref LinkedInClientSecret
+        authorize_scopes: "openid profile email"
+        oidc_issuer: "https://www.linkedin.com/oauth"
+        attributes_request_method: GET
+      AttributeMapping:
+        email: email
+        given_name: given_name
+        family_name: family_name
+        picture: picture
+        username: sub
+
+  AppClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn:
+      - LinkedInIdP
+      - UserPoolDomain
+    Properties:
+      ClientName: !Sub blueprint-public-${Environment}
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      SupportedIdentityProviders:
+        - LinkedIn
+      CallbackURLs:
+        - !Sub ${FrontendUrl}/callback
+        - http://localhost:5173/callback
+      LogoutURLs:
+        - !Sub ${FrontendUrl}/
+        - http://localhost:5173/
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub blueprint-public-pool-${Environment}
+  UserPoolArn:
+    Value: !GetAtt UserPool.Arn
+  ClientId:
+    Value: !Ref AppClient
+  CognitoDomain:
+    Value: !Sub https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com
