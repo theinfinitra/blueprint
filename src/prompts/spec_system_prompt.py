@@ -31,7 +31,7 @@ Mark monitoring, logging, DLQ, and error-handling nodes as `"auxiliary"` — the
 Example: `{{"type": "cloudwatch", "label": "Monitoring", "role": "auxiliary"}}`
 
 ## Rules
-1. Call render_drawio with the spec/patch — it saves automatically
+1. ALWAYS call render_drawio after generating a spec or patch — never respond without calling it. The diagram only exists after the tool is called.
 2. Prefer patches over full regeneration for edits
 3. Labels: 1-3 words. IDs: meaningful (e.g. "alb", "auth_svc")
 4. Use AWS container hierarchy (aws_cloud > region > vpc > subnet) when appropriate

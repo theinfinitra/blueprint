@@ -179,30 +179,25 @@ def handler(event, context):
 
             result = str(agent(prompt))
 
-            # Find diagram — reuse key if editing, otherwise scan for newly created
-            edit_key = event.get("diagram_key")
+            # Get diagram key and XML from render_drawio tool state (set during agent execution)
+            from src.tools.render_drawio import get_current_diagram_key, get_current_spec
+            edit_key = get_current_diagram_key() or event.get("diagram_key")
             diagram_url = None
             diagram_xml = None
+
             if not edit_key:
-                user_prefix = f"diagrams/{user_id}/"
-                try:
-                    objs = s3.list_objects_v2(Bucket=BUCKET, Prefix=user_prefix, MaxKeys=100)
-                    for obj in sorted(objs.get("Contents", []), key=lambda x: x["LastModified"], reverse=True):
-                        if obj["Key"].endswith(".drawio") and obj["LastModified"].replace(tzinfo=timezone.utc) >= job_start:
-                            edit_key = obj["Key"]
-                            break
-                except Exception as e:
-                    print(f"S3 list error: {e}")
+                print(f"WARNING: No diagram key after agent execution. Tool may not have been called. Result: {result[:200]}")
 
             if edit_key:
                 diagram_url = s3.generate_presigned_url(
                     "get_object", Params={"Bucket": BUCKET, "Key": edit_key}, ExpiresIn=3600,
                 )
-                # Also include the XML directly so frontend doesn't need a separate fetch
+                # Get XML directly from S3 (tool just wrote it)
                 try:
                     xml_obj = s3.get_object(Bucket=BUCKET, Key=edit_key)
                     diagram_xml = xml_obj["Body"].read().decode("utf-8")
-                except Exception:
+                except Exception as e:
+                    print(f"Failed to read diagram XML from {edit_key}: {e}")
                     diagram_xml = None
 
             s3.put_object(

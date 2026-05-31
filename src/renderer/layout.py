@@ -79,14 +79,21 @@ def _find_anchor(nid: str, spec: DiagramSpec, prior: dict[str, list[float]]) -> 
 
 def _compute_cluster_bounds(spec: DiagramSpec, positions: dict[str, tuple[float, float]],
                             ) -> dict[str, tuple[float, float, float, float]]:
-    """Compute cluster bounding boxes from node positions."""
+    """Compute cluster bounding boxes from node positions, bottom-up."""
     PAD = 55
+    PAD_TOP = 75  # extra top padding for cluster label
     bounds: dict[str, tuple[float, float, float, float]] = {}
-    for cid, cluster in spec.clusters.items():
+
+    # Process clusters bottom-up (leaf clusters first, then parents)
+    sorted_clusters = _topo_sort_clusters_bottomup(spec)
+
+    for cid in sorted_clusters:
+        cluster = spec.clusters[cid]
         child_positions = []
         for child in cluster.children:
             if child in positions:
-                child_positions.append(positions[child])
+                child_positions.append((positions[child][0], positions[child][1]))
+                child_positions.append((positions[child][0] + NODE_W, positions[child][1] + NODE_H))
             elif child in bounds:
                 bx, by, bw, bh = bounds[child]
                 child_positions.append((bx, by))
@@ -95,10 +102,37 @@ def _compute_cluster_bounds(spec: DiagramSpec, positions: dict[str, tuple[float,
             continue
         xs = [p[0] for p in child_positions]
         ys = [p[1] for p in child_positions]
-        x0, y0 = min(xs) - PAD, min(ys) - PAD
-        x1, y1 = max(xs) + NODE_W + PAD, max(ys) + NODE_H + PAD
+        x0, y0 = min(xs) - PAD, min(ys) - PAD_TOP
+        x1, y1 = max(xs) + PAD, max(ys) + PAD
         bounds[cid] = (round(x0), round(y0), round(x1 - x0), round(y1 - y0))
     return bounds
+
+
+def _topo_sort_clusters_bottomup(spec: DiagramSpec) -> list[str]:
+    """Sort clusters so children come before parents (bottom-up)."""
+    child_to_parent: dict[str, str] = {}
+    for cid, cluster in spec.clusters.items():
+        for child in cluster.children:
+            if child in spec.clusters:
+                child_to_parent[child] = cid
+
+    sorted_ids: list[str] = []
+    visited: set[str] = set()
+
+    def visit(cid: str):
+        if cid in visited:
+            return
+        visited.add(cid)
+        # Visit children first
+        cluster = spec.clusters[cid]
+        for child in cluster.children:
+            if child in spec.clusters:
+                visit(child)
+        sorted_ids.append(cid)
+
+    for cid in spec.clusters:
+        visit(cid)
+    return sorted_ids
 
 
 def _dot_layout(spec: DiagramSpec, direction: str) -> LayoutResult:
@@ -133,7 +167,7 @@ def _dot_layout(spec: DiagramSpec, direction: str) -> LayoutResult:
     def _add_cluster(parent_graph, cid):
         cluster = spec.clusters[cid]
         with parent_graph.subgraph(name=f"cluster_{cid}") as sg:
-            sg.attr(label=cluster.label, style="rounded", penwidth="2", margin="20")
+            sg.attr(label=cluster.label, style="rounded", penwidth="2", margin="40")
             for child in cluster.children:
                 if child in spec.nodes:
                     sg.node(child, label=spec.nodes[child].label,

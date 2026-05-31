@@ -75,7 +75,7 @@ export default function App() {
             setSaveStatus("saving");
             saveDiagramToS3(msg.xml, diagramKey, token).then((ok) => {
               setSaveStatus(ok ? "saved" : "error");
-              if (ok) setDiagramXml(msg.xml);
+              if (ok) { xmlFromIframe.current = true; setDiagramXml(msg.xml); }
               setTimeout(() => setSaveStatus(null), 2000);
             });
           }
@@ -90,7 +90,7 @@ export default function App() {
               setSaveStatus("saving");
               saveDiagramToS3(pendingXml.current, diagramKey, token).then((ok) => {
                 setSaveStatus(ok ? "saved" : "error");
-                if (ok) setDiagramXml(pendingXml.current!);
+                if (ok) { xmlFromIframe.current = true; setDiagramXml(pendingXml.current!); }
                 pendingXml.current = null;
                 setTimeout(() => setSaveStatus(null), 2000);
               });
@@ -102,7 +102,7 @@ export default function App() {
         }
         if (msg.event === "export" && msg.data && diagramKey) {
           const token = getToken();
-          if (token) { saveDiagramToS3(msg.data, diagramKey, token); setDiagramXml(msg.data); }
+          if (token) { saveDiagramToS3(msg.data, diagramKey, token); xmlFromIframe.current = true; setDiagramXml(msg.data); }
         }
       } catch { /* ignore */ }
     };
@@ -135,7 +135,11 @@ export default function App() {
     iframeRef.current.contentWindow.postMessage(JSON.stringify({ action: "load", xml, autosave: 1 }), "*");
   }, []);
 
-  useEffect(() => { if (diagramXml && iframeReady) loadXmlIntoIframe(diagramXml); }, [diagramXml, iframeReady, loadXmlIntoIframe]);
+  const xmlFromIframe = useRef(false);
+  useEffect(() => {
+    if (xmlFromIframe.current) { xmlFromIframe.current = false; return; }
+    if (diagramXml && iframeReady) loadXmlIntoIframe(diagramXml);
+  }, [diagramXml, iframeReady, loadXmlIntoIframe]);
 
   const extractTitle = (xml: string): string | null => {
     const match = xml.match(/name="([^"]+)"/);

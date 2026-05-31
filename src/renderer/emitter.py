@@ -52,7 +52,13 @@ def _edge_ports(src_pos: tuple[float, float], tgt_pos: tuple[float, float], nw: 
 
 def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
     cells: list[str] = []
-    cell_id = 3  # 0=root, 1=layer, 2=background rect
+    cell_id = 2  # 0=root, 1=layer
+
+    # Compute centering offset
+    page_w = max(1920, int(layout.graph_width + 400))
+    page_h = max(1400, int(layout.graph_height + 400))
+    offset_x = round((page_w - layout.graph_width) / 2)
+    offset_y = round((page_h - layout.graph_height) / 2)
 
     cluster_cell_ids: dict[str, int] = {}
     child_to_parent: dict[str, str] = {}
@@ -73,6 +79,9 @@ def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
                 px, py, _, _ = layout.cluster_bounds[parent_cid]
                 x -= px
                 y -= py
+            else:
+                x += offset_x
+                y += offset_y
         else:
             x, y, w, h = 0, 0, 400, 300
 
@@ -101,6 +110,9 @@ def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
             px, py, _, _ = layout.cluster_bounds[parent_cid]
             x -= px
             y -= py
+        else:
+            x += offset_x
+            y += offset_y
 
         cells.append(
             f'      <mxCell id="{cell_id}" value="{escape(node.label)}" '
@@ -140,26 +152,12 @@ def emit_drawio(spec: DiagramSpec, layout: LayoutResult) -> str:
 
     cells_xml = "\n".join(cells)
 
-    # Dynamic canvas size based on layout
-    page_w = max(1920, int(layout.graph_width + 200))
-    page_h = max(1400, int(layout.graph_height + 200))
-
-    # Background rectangle for PNG export (prevents black background)
-    bg_cell = (
-        f'        <mxCell id="2" value="" '
-        f'style="rounded=1;whiteSpace=wrap;fillColor=#F5F5F5;strokeColor=none;arcSize=2;" '
-        f'vertex="1" parent="1">\n'
-        f'          <mxGeometry width="{page_w}" height="{page_h}" as="geometry" />\n'
-        f'        </mxCell>'
-    )
-
     return f'''<mxfile host="diagram-agent" modified="" agent="diagram-agent" version="1">
   <diagram id="page-1" name="{escape(spec.title)}">
-    <mxGraphModel dx="0" dy="0" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="{page_w}" pageHeight="{page_h}" math="0" shadow="0">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="{page_w}" pageHeight="{page_h}" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-{bg_cell}
 {cells_xml}
       </root>
     </mxGraphModel>
